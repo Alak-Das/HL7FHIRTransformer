@@ -12,7 +12,7 @@ fhir-to-hl7:
   default-message-type: "ADT^A01"
   
   # Sending/Receiving application defaults
-  sending-application: "fhirhl7transformer"
+  sending-application: "hl7fhirtransformer"
   receiving-application: "LegacyApp"
   sending-facility: "FHIR_FACILITY"
   receiving-facility: "HL7_FACILITY"

@@ -120,7 +120,7 @@ spring.data.redis.port=6379
 mvn clean package -DskipTests
 
 # Run
-java -jar target/HL7FHIRTransformer-0.0.1-SNAPSHOT.jar
+java -jar target/hl7-fhir-transformer-0.0.1-SNAPSHOT.jar
 
 # OR use Maven Spring Boot plugin
 mvn spring-boot:run
@@ -145,7 +145,7 @@ curl http://localhost:8080/actuator/health -u admin:password
 #### Step 2: Configure Run Configuration
 1. Run → Edit Configurations
 2. Add New → Spring Boot
-3. Main class: `com.HL7FHIRTransformer.HL7FHIRTransformerApplication`
+3. Main class: `com.al.hl7fhirtransformer.FhirHl7TransformerApplication`
 4. VM Options: `-Dspring.profiles.active=dev`
 5. Environment Variables:
    ```
@@ -182,7 +182,7 @@ RUN mvn clean package -DskipTests
 # Stage 2: Runtime (JRE 21 only)
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/HL7FHIRTransformer-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/target/hl7-fhir-transformer-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```

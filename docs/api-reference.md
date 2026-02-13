@@ -73,7 +73,8 @@ HTTP/1.1 202 Accepted
 Content-Type: application/json
 
 {
-  "status": "Conversion initiated",
+  "status": "Accepted",
+  "message": "Processing asynchronously",
   "transactionId": "MSG001"
 }
 ```
@@ -94,9 +95,8 @@ Content-Type: application/json
 ```json
 // 400 Bad Request - Malformed HL7
 {
-  "error": "Bad Request",
-  "message": "ca.uhn.hl7v2.HL7Exception: Invalid message structure",
-  "timestamp": "2024-01-19T12:00:00"
+  "status": "Error",
+  "message": "ca.uhn.hl7v2.HL7Exception: Invalid message structure"
 }
 
 // 401 Unauthorized
@@ -227,7 +227,7 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 Content-Type: text/plain
 
-MSH|^~\&|HL7FHIRTransformer||LegacyApp||20240119120000||ADT^A01^ADT_A01|MSG001|P|2.5
+MSH|^~\&|hl7fhirtransformer||LegacyApp||20240119120000||ADT^A01^ADT_A01|MSG001|P|2.5
 PID|1||12345|||Doe^John||19800101|M
 ```
 
@@ -474,7 +474,7 @@ HTTP/1.1 200 OK
   },
   "transactions": [
     {
-      "HL7FHIRTransformerId": "txn-mongo-id-123",
+      "hl7fhirtransformerId": "txn-mongo-id-123",
       "originalMessageId": "MSG001",
       "messageType": "V2_TO_FHIR",
       "status": "PROCESSED",

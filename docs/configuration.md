@@ -19,7 +19,7 @@ All configuration is defined in `src/main/resources/application.properties`. Ove
 server.port=8080
 
 # Application Name
-spring.application.name=HL7FHIRTransformer
+spring.application.name=hl7-fhir-transformer
 
 # HTTP/2 Support
 server.http2.enabled=true
@@ -313,7 +313,7 @@ Authenticated via Basic Auth. Credentials for Swagger UI match the application a
 ### Log Levels
 ```properties
 # Application Logs
-logging.level.com.HL7FHIRTransformer=${LOG_LEVEL:INFO}
+logging.level.com.al.hl7fhirtransformer=${LOG_LEVEL:INFO}
 
 # Spring Security Logs (reduce noise)
 logging.level.org.springframework.security=${SECURITY_LOG_LEVEL:WARN}
@@ -512,7 +512,7 @@ stringData:
 ### Verify Configuration at Startup
 ```bash
 # Check logs for configuration binding
-docker logs HL7FHIRTransformer | grep "Started HL7FHIRTransformerApplication"
+docker logs HL7FHIRTransformer | grep "Started FhirHl7TransformerApplication"
 
 # Verify MongoDB connection
 docker logs HL7FHIRTransformer | grep "Cluster created with settings"

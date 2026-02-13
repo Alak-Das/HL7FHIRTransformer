@@ -1,7 +1,7 @@
 # HL7FHIRTransformer Documentation
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.1-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2.2-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-24.0+-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3.12-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
@@ -10,7 +10,7 @@
 
 ## Overview
 
-HL7FHIRTransformer is an enterprise-grade, high-performance bidirectional message conversion engine that transforms HL7 v2.x messages into FHIR R4 resources and vice versa. Built on Spring Boot 4.0.1 with Java 21, it employs asynchronous message processing via RabbitMQ, multi-tenant architecture, role-based access control, and distributed caching for optimal performance.
+HL7FHIRTransformer is an enterprise-grade, high-performance bidirectional message conversion engine that transforms HL7 v2.x messages into FHIR R4 resources and vice versa. Built on Spring Boot 3.2.2 with Java 21, it employs asynchronous message processing via RabbitMQ, multi-tenant architecture, role-based access control, and distributed caching for optimal performance.
 
 ## Quick Links
 
@@ -42,7 +42,7 @@ HL7FHIRTransformer is an enterprise-grade, high-performance bidirectional messag
 - **Metrics & Monitoring**: Prometheus-compatible metrics via Spring Actuator
 
 ### Technical Stack
-- **Framework**: Spring Boot 4.0.1, Java 21
+- **Framework**: Spring Boot 3.2.2, Java 21
 - **Message Broker**: RabbitMQ 3.x with management console
 - **Database**: MongoDB (document storage)
 - **Cache**: Redis 7.x (distributed caching)

@@ -377,7 +377,7 @@ public Optional<Tenant> findByTenantId(String tenantId) {
     ▼
 [Response: 202 Accepted]
     {
-      "status": "Conversion initiated",
+      "status": "Accepted",
       "transactionId": "MSG001"
     }
 
@@ -459,7 +459,7 @@ public Optional<Tenant> findByTenantId(String tenantId) {
 ## Technology Stack
 
 ### Core Framework
-- **Spring Boot**: 4.0.1
+- **Spring Boot**: 3.2.2
 - **Java**: 21 (LTS)
 - **Build Tool**: Maven 3.9.9
 
