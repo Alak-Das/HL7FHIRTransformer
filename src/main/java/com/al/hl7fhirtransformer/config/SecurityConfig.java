@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import static org.springframework.security.config.Customizer.withDefaults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +18,11 @@ import org.slf4j.LoggerFactory;
 public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
+    private final ApiKeyAuthFilter apiKeyAuthFilter;
+
     @Autowired
-    public SecurityConfig() {
+    public SecurityConfig(ApiKeyAuthFilter apiKeyAuthFilter) {
+        this.apiKeyAuthFilter = apiKeyAuthFilter;
         log.info("DEBUG: SecurityConfig initialized");
     }
 
@@ -33,10 +37,25 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(
                         org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+                // Register API Key filter BEFORE Basic Auth so X-API-Key headers are honoured
+                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        // Actuator — admin only
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        // Tenant management — admin only
                         .requestMatchers("/api/tenants", "/api/tenants/**").hasRole("ADMIN")
+                        // Conversion endpoints — admin or tenant
                         .requestMatchers("/api/convert/**").hasAnyRole("ADMIN", "TENANT")
+                        // ACK retrieval — admin or tenant
+                        .requestMatchers("/api/ack/**").hasAnyRole("ADMIN", "TENANT")
+                        // Subscription management — admin or tenant
+                        .requestMatchers("/api/subscriptions/**").hasAnyRole("ADMIN", "TENANT")
+                        // Health GET — any authenticated user; cache DELETE — admin only
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/health")
+                        .hasAnyRole("ADMIN", "TENANT")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/health/cache/**")
+                        .hasRole("ADMIN")
+                        // Everything else requires authentication
                         .anyRequest().authenticated())
                 .httpBasic(withDefaults());
         return http.build();

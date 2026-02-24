@@ -29,4 +29,6 @@ public interface TransactionRepository extends MongoRepository<TransactionRecord
         Optional<TransactionRecord> findByTransactionId(String transactionId);
 
         Optional<TransactionRecord> findByIdempotencyKey(String idempotencyKey);
+
+        Optional<TransactionRecord> findByTenantIdAndTransactionId(String tenantId, String transactionId);
 }

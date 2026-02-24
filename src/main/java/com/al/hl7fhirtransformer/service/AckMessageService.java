@@ -208,4 +208,75 @@ public class AckMessageService {
             return message;
         return message.substring(0, maxLength - 3) + "...";
     }
+
+    /**
+     * Generate an HL7 v2 ACK message from a
+     * {@link com.al.hl7fhirtransformer.model.TransactionRecord}.
+     * Used by the AckController to produce ACKs for async jobs without the original
+     * HL7 text.
+     *
+     * <ul>
+     * <li>COMPLETED → AA (Application Accept)</li>
+     * <li>FAILED → AE (Application Error)</li>
+     * <li>Other → AR (Application Reject / not yet processed)</li>
+     * </ul>
+     *
+     * @param record The stored transaction record
+     * @return Pipe-delimited HL7 v2 ACK string
+     */
+    public String generateAckFromRecord(com.al.hl7fhirtransformer.model.TransactionRecord record)
+            throws HL7Exception {
+        String status = record.getStatus();
+        String ackCode;
+        String errorMessage = null;
+
+        if ("COMPLETED".equalsIgnoreCase(status)) {
+            ackCode = "AA";
+        } else if ("FAILED".equalsIgnoreCase(status)) {
+            ackCode = "AE";
+            errorMessage = record.getLastErrorMessage();
+        } else {
+            ackCode = "AR";
+            errorMessage = "Processing not yet complete. Current status: " + status;
+        }
+
+        ACK ack = new ACK();
+
+        MSH msh = ack.getMSH();
+        msh.getFieldSeparator().setValue("|");
+        msh.getEncodingCharacters().setValue("^~\\&");
+        msh.getSendingApplication().getNamespaceID().setValue("FHIR-TRANSFORMER");
+        msh.getSendingFacility().getNamespaceID().setValue("TRANSFORM-FACILITY");
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        msh.getDateTimeOfMessage().getTime().setValue(sdf.format(new Date()));
+        msh.getMessageType().getMessageCode().setValue("ACK");
+        msh.getMessageType().getMessageStructure().setValue("ACK");
+        msh.getMessageControlID().setValue("ACK-" + UUID.randomUUID().toString().substring(0, 8));
+        msh.getProcessingID().getProcessingID().setValue("P");
+        msh.getVersionID().getVersionID().setValue("2.5");
+
+        MSA msa = ack.getMSA();
+        msa.getAcknowledgmentCode().setValue(ackCode);
+        // Use TransactionRecord's own transactionId as the echoed message control ID
+        msa.getMessageControlID().setValue(
+                record.getTransactionId() != null ? record.getTransactionId() : "UNKNOWN");
+
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+            msa.getTextMessage().setValue(truncateMessage(errorMessage, 80));
+        }
+
+        if (("AE".equals(ackCode) || "AR".equals(ackCode)) && errorMessage != null) {
+            ERR err = ack.getERR();
+            err.getErrorCodeAndLocation(0).getSegmentID().setValue("MSH");
+            err.getErrorCodeAndLocation(0).getCodeIdentifyingError().getIdentifier().setValue(
+                    "AR".equals(ackCode) ? "100" : "200");
+            err.getErrorCodeAndLocation(0).getCodeIdentifyingError().getText().setValue(
+                    truncateMessage(errorMessage, 200));
+        }
+
+        String ackMessage = hl7Context.getPipeParser().encode(ack);
+        log.info("Generated ACK from record: code={}, transactionId={}", ackCode, record.getTransactionId());
+        return ackMessage;
+    }
 }

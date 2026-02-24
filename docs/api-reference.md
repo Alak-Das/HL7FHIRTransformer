@@ -4,6 +4,9 @@
 - [Authentication](#authentication)
 - [Conversion Endpoints](#conversion-endpoints)
 - [Tenant Management](#tenant-management)
+- [Subscription Management](#subscription-management)
+- [ACK Retrieval](#ack-retrieval)
+- [Health & Cache Management](#health--cache-management)
 - [Error Handling](#error-handling)
 - [Rate Limiting & Quotas](#rate-limiting--quotas)
 - [Interactive Documentation (Swagger UI)](#interactive-documentation-swagger-ui)
@@ -11,14 +14,30 @@
 
 ## Authentication
 
-All API endpoints require **HTTP Basic Authentication**.
+The API supports two authentication methods:
 
-### Headers
+### Option 1: HTTP Basic Authentication (all roles)
 ```http
 Authorization: Basic <base64(username:password)>
 Content-Type: text/plain  (for HL7 messages)
 Content-Type: application/json  (for FHIR bundles, batch requests)
 ```
+
+### Option 2: API Key Authentication (TENANT role)
+
+Pass a static API key in the `X-API-Key` header instead of Basic Auth:
+```http
+X-API-Key: changeme-system1
+Content-Type: text/plain
+```
+
+API keys are configured in `application.properties` (overridden via environment variables):
+```properties
+app.api-keys.system1=${API_KEY_SYSTEM1:changeme-system1}
+app.api-keys.integration=${API_KEY_INTEGRATION:changeme-integration}
+```
+
+> ⚠️ **Security Warning**: Always set strong API keys via environment variables in production. Never use the default `changeme-*` values.
 
 ### Rate Limiting Response Headers
 
@@ -36,8 +55,10 @@ Password: password
 > ⚠️ **Security Warning**: Change default credentials in production via environment variables `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
 
 ### Roles
-- **ADMIN**: Full access (tenant management + conversions)
-- **TENANT**: Conversion endpoints only
+| Role | Access |
+|------|--------|
+| **ADMIN** | Full access: tenant management, conversions, cache eviction |
+| **TENANT** | Conversions, ACK retrieval, subscriptions, health status (read-only) |
 
 ---
 
@@ -111,7 +132,8 @@ Content-Type: application/json
 - Actual conversion happens asynchronously
 - **Retry Logic**: Failed messages automatically retry 3 times (5s → 15s → 45s delays) before routing to DLQ
 - **Idempotency**: Duplicate requests with same `Idempotency-Key` return cached result
-- Check transaction status via `/api/tenants/{tenantId}/transactions`
+- Check transaction status via `GET /api/tenants/{tenantId}/transactions/{transactionId}` (single) or `GET /api/tenants/{tenantId}/transactions` (paginated list)
+- Retrieve HL7 ACK for the transaction via `GET /api/ack/{transactionId}`
 - Final status after all retries exhausted: Routes to Dead Letter Queue (DLQ)
 
 ---
@@ -443,7 +465,7 @@ HTTP/1.1 200 OK
 
 ---
 
-### 5. Get Tenant Transactions (Audit Log)
+### 5. Get Tenant Transactions (Audit Log — Paginated)
 
 **Endpoint**: `GET /api/tenants/{tenantId}/transactions`
 
@@ -460,18 +482,12 @@ Authorization: Basic YWRtaW46cGFzc3dvcmQ=
 ```
 
 **Success Response**:
-```http
-HTTP/1.1 200 OK
-
+```json
 {
   "totalCount": 150,
   "totalPages": 15,
   "currentPage": 0,
-  "statusCounts": {
-    "ACCEPTED": 10,
-    "PROCESSED": 135,
-    "FAILED": 5
-  },
+  "statusCounts": {"ACCEPTED": 10, "PROCESSED": 135, "FAILED": 5},
   "transactions": [
     {
       "hl7fhirtransformerId": "txn-mongo-id-123",
@@ -479,17 +495,192 @@ HTTP/1.1 200 OK
       "messageType": "V2_TO_FHIR",
       "status": "PROCESSED",
       "timestamp": "2024-01-19T12:00:00"
-    },
-    {
-      "originalMessageId": "MSG002",
-      "messageType": "FHIR_TO_V2",
-      "status": "FAILED",
-      "timestamp": "2024-01-19T12:05:00"
-    },
-    ...
+    }
   ]
 }
 ```
+
+---
+
+### 6. Get Single Transaction by ID
+
+**Endpoint**: `GET /api/tenants/{tenantId}/transactions/{transactionId}`
+
+**Description**: Look up a single transaction by its `transactionId` (same value as the `transformerId` response header from async endpoints). Use this to poll the status of an async job.
+
+**Transaction Lifecycle**: `ACCEPTED` → `QUEUED` → `PROCESSING` → `COMPLETED` | `FAILED`
+
+**Request**:
+```http
+GET /api/tenants/admin/transactions/MSG001 HTTP/1.1
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "hl7fhirtransformerId": "507f1f77bcf86cd799439099",
+  "originalMessageId": "MSG001",
+  "messageType": "V2_TO_FHIR",
+  "status": "COMPLETED",
+  "timestamp": "2024-01-19T12:00:00"
+}
+```
+
+**Error Response** (404 Not Found): returned when `transactionId` does not belong to the specified tenant.
+
+---
+
+## Subscription Management
+
+> **Authorization**: `ROLE_ADMIN` or `ROLE_TENANT`
+
+Subscriptions trigger webhook notifications when matching FHIR resources are produced.
+
+### 1. Create Subscription
+
+**Endpoint**: `POST /api/subscriptions?criteria=Patient&endpoint=http://hook`
+
+```http
+POST /api/subscriptions?criteria=Patient%3Fgender%3Dmale&endpoint=https://my-system.com/webhook HTTP/1.1
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+tenantId: hospital_a
+```
+
+**Success Response** (200 OK): returns the created `SubscriptionEntity` with generated `id`.
+
+### 2. List Active Subscriptions
+
+**Endpoint**: `GET /api/subscriptions`
+
+### 3. Update Subscription
+
+**Endpoint**: `PUT /api/subscriptions/{id}?criteria=<new>&endpoint=<new>`
+
+```http
+PUT /api/subscriptions/sub-abc123?criteria=Observation%3Fstatus%3Dfinal&endpoint=https://my-system.com/new-hook HTTP/1.1
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+tenantId: hospital_a
+```
+
+**Success Response** (200 OK): returns the updated entity. Returns **404** if subscription not found for the tenant.
+
+### 4. Cancel Subscription
+
+**Endpoint**: `DELETE /api/subscriptions/{id}`
+
+```http
+DELETE /api/subscriptions/sub-abc123 HTTP/1.1
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+tenantId: hospital_a
+```
+
+**Success Response** (200 OK):
+```json
+{ "message": "Subscription cancelled successfully", "id": "sub-abc123" }
+```
+
+**Criteria Format**: Supports `ResourceType` alone or with parameters:
+- `Patient` — matches any Patient resource
+- `Patient?gender=male` — matches only male patients
+- `Observation?status=final&category=vital-signs` — multiple parameters (AND logic)
+
+---
+
+## ACK Retrieval
+
+> **Authorization**: `ROLE_ADMIN` or `ROLE_TENANT`
+
+Retrieve an HL7 v2 ACK message for a previously submitted async conversion job.
+
+**Endpoint**: `GET /api/ack/{transactionId}`
+
+**Path Parameter**: `transactionId` — the value returned in the `transformerId` response header from `POST /api/convert/v2-to-fhir` or `POST /api/convert/fhir-to-v2`.
+
+**Request**:
+```http
+GET /api/ack/MSG001 HTTP/1.1
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+```
+
+**Success Response** (200 OK):
+```
+Content-Type: text/plain
+X-Ack-Code: AA
+transformerId: MSG001
+
+MSH|^~\&|FHIR-TRANSFORMER|TRANSFORM-FACILITY|||20260224152700||ACK|ACK-a1b2c3d4|P|2.5
+MSA|AA|MSG001
+```
+
+**ACK Code Mapping**:
+| Transaction Status | ACK Code | Meaning |
+|---|---|---|
+| `COMPLETED` | `AA` | Application Accept — processed successfully |
+| `FAILED` | `AE` | Application Error — processed but failed |
+| `ACCEPTED` / `QUEUED` / `PROCESSING` | `AR` | Application Reject — not yet complete, poll again |
+
+**Error Response**: `404 Not Found` if `transactionId` is unknown.
+
+---
+
+## Health & Cache Management
+
+> **GET** endpoints: `ROLE_ADMIN` or `ROLE_TENANT`
+> **DELETE** endpoints: `ROLE_ADMIN` only
+
+### 1. Application Health Status
+
+**Endpoint**: `GET /api/health`
+
+Returns a fast in-process status check (no external calls).
+
+**Request**:
+```http
+GET /api/health HTTP/1.1
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "status": "UP",
+  "application": "hl7-fhir-transformer",
+  "version": "0.0.1-SNAPSHOT",
+  "uptimeSeconds": 3600,
+  "cacheNames": ["tenant", "transaction", "tenantStatusCounts"],
+  "timestamp": "2026-02-24T15:27:00Z"
+}
+```
+
+### 2. Evict All Caches
+
+**Endpoint**: `DELETE /api/health/cache`
+
+Clears all Redis caches immediately. Use after bulk data migrations or configuration changes.
+
+**Success Response** (200 OK):
+```json
+{ "message": "All caches evicted successfully", "cachesEvicted": 3 }
+```
+
+### 3. Evict Named Cache
+
+**Endpoint**: `DELETE /api/health/cache/{cacheName}`
+
+```http
+DELETE /api/health/cache/transaction HTTP/1.1
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+```
+
+**Success Response** (200 OK):
+```json
+{ "message": "Cache evicted successfully", "cacheName": "transaction" }
+```
+
+**Error Response** (404 Not Found): returned if `cacheName` is not a registered cache.
+
+**Available Cache Names**: `tenant`, `transaction`, `tenantStatusCounts`
 
 ---
 

@@ -92,4 +92,16 @@ public class TransactionService {
         return transactionRepository.countStatusByTenantIdAndTimestampBetween(
                 tenantId, startDate, endDate);
     }
+
+    /**
+     * Find a single transaction by tenant ID and transaction ID.
+     * Ensures tenants can only retrieve their own transactions.
+     *
+     * @param tenantId      Tenant ID
+     * @param transactionId The transaction / message control ID
+     * @return Optional containing the matching record
+     */
+    public Optional<TransactionRecord> findByTenantIdAndTransactionId(String tenantId, String transactionId) {
+        return transactionRepository.findByTenantIdAndTransactionId(tenantId, transactionId);
+    }
 }

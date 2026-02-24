@@ -85,6 +85,29 @@ public class TenantController {
     }
 
     /**
+     * Retrieve a single transaction record for a tenant by its transactionId.
+     * Useful for polling the status of async conversions using the transformerId
+     * header value.
+     * GET /api/tenants/{tenantId}/transactions/{transactionId}
+     */
+    @GetMapping("/{tenantId}/transactions/{transactionId}")
+    public ResponseEntity<TransactionDTO> getTransaction(
+            @PathVariable String tenantId,
+            @PathVariable String transactionId) {
+
+        return transactionService.findByTenantIdAndTransactionId(tenantId, transactionId)
+                .map(r -> TransactionDTO.builder()
+                        .hl7fhirtransformerId(r.getId())
+                        .originalMessageId(r.getTransactionId())
+                        .messageType(r.getMessageType())
+                        .status(r.getStatus())
+                        .timestamp(r.getTimestamp())
+                        .build())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
      * Onboard a new tenant with optional rate limit configuration.
      */
     @PostMapping("/onboard")

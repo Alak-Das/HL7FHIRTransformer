@@ -176,32 +176,60 @@ export ADMIN_USERNAME=secureAdmin
 export ADMIN_PASSWORD='C0mpl3x!P@ssw0rd'
 ```
 
+### API Key Authentication
+
+Stateless API keys for machine-to-machine integrations (grants `ROLE_TENANT`).
+
+```properties
+# Configure one key per integration system
+# Key names (e.g. system1) become the authentication principal name
+app.api-keys.system1=${API_KEY_SYSTEM1:changeme-system1}
+app.api-keys.integration=${API_KEY_INTEGRATION:changeme-integration}
+```
+
+Clients send the key via the `X-API-Key` header:
+```http
+X-API-Key: changeme-system1
+```
+
+> ⚠️ Always override with cryptographically random keys in production via environment variables.
+
+**Adding a new key** — add a line to `application.properties`:
+```properties
+app.api-keys.hospitalB=${API_KEY_HOSPITAL_B:changeme-b}
+```
+
+The filter automatically picks up any key matching the format `app.api-keys.<name>` where `<name>` is one of: `system1`, `system2`, `system3`, `integration`, `external`.
+
 ### Spring Security
 Configured in `SecurityConfig.java`:
 
 ```java
-@Bean
-public SecurityFilterChain filterChain(HttpSecurity http) {
-    http
-        .csrf(csrf -> csrf.disable())  // Disable for stateless API
-        .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/actuator/**").hasRole("ADMIN")
-            .requestMatchers("/api/tenants", "/api/tenants/**").hasRole("ADMIN")
-            .requestMatchers("/api/convert/**").hasAnyRole("ADMIN", "TENANT")
-            .anyRequest().authenticated()
-        )
-        .httpBasic(withDefaults());
-    return http.build();
-}
+http
+    .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
+    .authorizeHttpRequests(auth -> auth
+        .requestMatchers("/actuator/**").hasRole("ADMIN")
+        .requestMatchers("/api/tenants/**").hasRole("ADMIN")
+        .requestMatchers("/api/convert/**").hasAnyRole("ADMIN", "TENANT")
+        .requestMatchers("/api/ack/**").hasAnyRole("ADMIN", "TENANT")
+        .requestMatchers("/api/subscriptions/**").hasAnyRole("ADMIN", "TENANT")
+        .requestMatchers(GET, "/api/health").hasAnyRole("ADMIN", "TENANT")
+        .requestMatchers(DELETE, "/api/health/cache/**").hasRole("ADMIN")
+        .anyRequest().authenticated()
+    )
+    .httpBasic(withDefaults());
 ```
 
 **RBAC Rules**:
-| Endpoint Pattern | Required Role |
-|------------------|---------------|
-| `/actuator/**` | ADMIN |
-| `/api/tenants/**` | ADMIN |
-| `/api/convert/**` | ADMIN or TENANT |
+| Endpoint Pattern | Method | Required Role |
+|------------------|--------|---------------|
+| `/actuator/**` | ANY | ADMIN |
+| `/api/tenants/**` | ANY | ADMIN |
+| `/api/convert/**` | ANY | ADMIN or TENANT |
+| `/api/ack/**` | GET | ADMIN or TENANT |
+| `/api/subscriptions/**` | ANY | ADMIN or TENANT |
+| `/api/health` | GET | ADMIN or TENANT |
+| `/api/health/cache/**` | DELETE | ADMIN |
 
 ### Password Encoding
 - **Algorithm**: BCrypt
