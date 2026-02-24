@@ -145,7 +145,7 @@ curl http://localhost:8080/actuator/health -u admin:password
 #### Step 2: Configure Run Configuration
 1. Run → Edit Configurations
 2. Add New → Spring Boot
-3. Main class: `com.al.hl7fhirtransformer.FhirHl7TransformerApplication`
+3. Main class: `com.al.hl7fhirtransformer.Hl7FhirTransformerApplication`
 4. VM Options: `-Dspring.profiles.active=dev`
 5. Environment Variables:
    ```

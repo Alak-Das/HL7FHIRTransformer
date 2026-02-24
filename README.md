@@ -33,8 +33,13 @@ HL7FHIRTransformer is an enterprise-grade, high-performance bidirectional messag
 
 ### Enterprise Features
 - **Role-Based Access Control**: Granular permissions (ADMIN, TENANT roles)
+- **API Key Authentication**: Stateless `X-API-Key` header auth for machine-to-machine integrations
+- **Webhook Subscriptions**: Real-time FHIR resource notifications via configurable REST-hook subscriptions with criteria matching (e.g., `Patient?gender=male`)
+- **HL7 ACK Generation**: Retrieve HL7 v2 ACK messages (AA/AE/AR) for async conversion jobs via `GET /api/ack/{transactionId}`
+- **Transaction Lookup by ID**: Poll a single async job status via `GET /api/tenants/{tenantId}/transactions/{transactionId}`
+- **Health & Cache Management**: Application health status + Redis cache eviction via `GET/DELETE /api/health`
 - **Distributed Caching**: Redis-based caching with configurable TTL
-- **Transaction Auditing**: Comprehensive audit logs with status tracking (ACCEPTED, PROCESSED, FAILED)
+- **Transaction Auditing**: Comprehensive audit logs with status tracking (ACCEPTED, PROCESSING, COMPLETED, FAILED)
 - **Idempotency Support**: RFC 7231-compliant duplicate request prevention via `Idempotency-Key` header
 - **Automatic Retry Logic**: 3-tier exponential backoff (5s → 15s → 45s) for transient failures
 - **Per-Tenant Rate Limiting**: Configurable requests-per-minute limits with Redis-based tracking
@@ -107,14 +112,12 @@ HL7FHIRTransformer is an enterprise-grade, high-performance bidirectional messag
 git clone <repository-url>
 cd HL7FHIRTransformer
 
-# Start infrastructure services
-docker-compose up -d
+# Start all services
+docker compose up -d --build
 
 # Application runs on http://localhost:8090
 # Swagger UI: http://localhost:8090/swagger-ui.html
-# RabbitMQ Management UI: http://localhost:15672 (guest/guest)
-# MongoDB: mongodb://localhost:27017/HL7FHIRTransformer
-# Redis: redis://localhost:6379
+# RabbitMQ Management UI: http://localhost:15672 (admin/supersecret)
 ```
 
 ### First API Call
@@ -141,15 +144,15 @@ PID|1||12345||Doe^John||19800101|M|||123 Main St^^New York^NY^10001"
 ```
 HL7FHIRTransformer/
 ├── src/main/java/com/al/hl7fhirtransformer/
-│   ├── config/              # Configuration classes (Security, RabbitMQ, Cache, etc.)
-│   ├── controller/          # REST controllers (Converter, Tenant)
+│   ├── config/              # Configuration (Security, ApiKeyAuthFilter, RabbitMQ, Cache)
+│   ├── controller/          # REST controllers (Converter, Tenant, Subscription, Ack, Health)
 │   ├── dto/                 # Data Transfer Objects
 │   ├── exception/           # Custom exceptions
 │   ├── listener/            # RabbitMQ message listeners
-│   ├── model/               # Domain models (Tenant, TransactionRecord, enums)
+│   ├── model/               # Domain models (Tenant, TransactionRecord, SubscriptionEntity)
 │   ├── repository/          # MongoDB repositories
 │   ├── service/             # Business logic services
-│   │   └── converter/       # Segment-specific converters
+│   │   └── converter/       # Segment-specific HL7↔FHIR converters
 │   └── util/                # Utility classes
 ├── src/main/resources/
 │   └── application.properties

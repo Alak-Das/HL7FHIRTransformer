@@ -540,7 +540,7 @@ stringData:
 ### Verify Configuration at Startup
 ```bash
 # Check logs for configuration binding
-docker logs HL7FHIRTransformer | grep "Started FhirHl7TransformerApplication"
+docker logs HL7FHIRTransformer | grep "Started Hl7FhirTransformerApplication"
 
 # Verify MongoDB connection
 docker logs HL7FHIRTransformer | grep "Cluster created with settings"
