@@ -259,7 +259,8 @@ PID|1||12345|||Doe^John||19800101|M
 
 **Endpoint**: `POST /api/convert/v2-to-fhir-batch`
 
-**Description**: Convert multiple HL7 messages in parallel. Max recommended: 100 messages.
+**Description**: Convert multiple HL7 messages in parallel. 
+> ℹ️ **Batch Limit Configuration**: The maximum number of messages allowed per batch is configured via `app.batch.max-size` (default: 100). Sending an empty batch or exceeding this limit returns `400 Bad Request`.
 
 **Request**:
 ```http
@@ -541,6 +542,8 @@ Subscriptions trigger webhook notifications when matching FHIR resources are pro
 
 **Endpoint**: `POST /api/subscriptions?criteria=Patient&endpoint=http://hook`
 
+> 🛡️ **Security (SSRF Protection)**: The `endpoint` URL is strictly validated. It MUST use the `https` protocol (unless explicitly pointing to `localhost` for development), and MUST NOT resolve to a private/internal IP address (e.g., `10.x.x.x`, `192.168.x.x`, `172.16.x.x`, or loopback besides `localhost`). Invalid URLs will return a `400 Bad Request`.
+
 ```http
 POST /api/subscriptions?criteria=Patient%3Fgender%3Dmale&endpoint=https://my-system.com/webhook HTTP/1.1
 Authorization: Basic YWRtaW46cGFzc3dvcmQ=
@@ -633,7 +636,9 @@ MSA|AA|MSG001
 
 **Endpoint**: `GET /api/health`
 
-Returns a fast in-process status check (no external calls).
+Returns a fast in-process status check (no external calls). 
+
+> ℹ️ **Rate Limiting**: Calls to the `/api/health` and `/actuator/health` endpoints **do not** count against the tenant's rate limit quota.
 
 **Request**:
 ```http

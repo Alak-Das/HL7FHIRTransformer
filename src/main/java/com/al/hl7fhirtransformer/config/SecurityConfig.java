@@ -10,20 +10,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import static org.springframework.security.config.Customizer.withDefaults;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final ApiKeyAuthFilter apiKeyAuthFilter;
 
     @Autowired
     public SecurityConfig(ApiKeyAuthFilter apiKeyAuthFilter) {
         this.apiKeyAuthFilter = apiKeyAuthFilter;
-        log.info("DEBUG: SecurityConfig initialized");
     }
 
     @Bean

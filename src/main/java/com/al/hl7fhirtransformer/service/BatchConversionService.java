@@ -8,11 +8,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Service for batch conversion operations with parallel processing.
@@ -23,7 +27,7 @@ import java.util.concurrent.Executors;
  * Handles both HL7 to FHIR and FHIR to HL7 batch conversions.
  * 
  * @author FHIR Transformer Team
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.1.0
  */
 @Service
@@ -34,6 +38,9 @@ public class BatchConversionService {
     private final FhirToHl7Service fhirToHl7Service;
     private final ExecutorService executorService;
 
+    @Value("${app.batch.max-size:100}")
+    private int maxBatchSize;
+
     @Autowired
     public BatchConversionService(Hl7ToFhirService hl7ToFhirService,
             FhirToHl7Service fhirToHl7Service) {
@@ -43,6 +50,31 @@ public class BatchConversionService {
         // Each conversion task runs on a virtual thread with minimal overhead
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         log.info("BatchConversionService initialized with Java 21 virtual threads");
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down BatchConversionService executor...");
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(30, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+                log.warn("BatchConversionService executor forced shutdown after 30s timeout");
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void validateBatchSize(int size) {
+        if (size == 0) {
+            throw new IllegalArgumentException("Batch must contain at least one message");
+        }
+        if (size > maxBatchSize) {
+            throw new IllegalArgumentException(
+                    String.format("Batch size %d exceeds maximum allowed size of %d", size, maxBatchSize));
+        }
     }
 
     /**
@@ -64,6 +96,7 @@ public class BatchConversionService {
      * @return BatchConversionResponse with results and errors
      */
     public BatchConversionResponse convertHl7ToFhirBatch(List<String> hl7Messages) {
+        validateBatchSize(hl7Messages.size());
         long startTime = System.currentTimeMillis();
         log.info("Starting batch HL7 to FHIR conversion: {} messages", hl7Messages.size());
 
@@ -148,6 +181,7 @@ public class BatchConversionService {
      * @return BatchConversionResponse with results and errors
      */
     public BatchConversionResponse convertFhirToHl7Batch(List<String> fhirBundles) {
+        validateBatchSize(fhirBundles.size());
         long startTime = System.currentTimeMillis();
         log.info("Starting batch FHIR to HL7 conversion: {} bundles", fhirBundles.size());
 

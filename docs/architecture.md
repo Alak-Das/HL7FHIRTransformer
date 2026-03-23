@@ -399,7 +399,7 @@ public Optional<Tenant> findByTenantId(String tenantId) {
     │   catch (Exception e) {
     │       Extract transactionId from MSH-10
     │       AuditService.updateTransactionStatus(txnId, "FAILED")
-    │       throw new RuntimeException() → Routes to DLQ
+    │       rabbitTemplate.convertAndSend(dlx, dl-routingkey, failedMessage) → Routes to DLQ
     │   }
     │   finally {
     │       TenantContext.clear()
@@ -526,8 +526,12 @@ Expensive validation components are shared across the application:
 - **ValidationSupportChain**: Pre-initialized and injected as a singleton. This avoids the high cost of re-scanning profiles and terminologies for every message.
 - **FhirContext**: Reused globally to minimize the cost of JSON/XML parsing and validation engine warm-up.
 
-#### 3. **Parallel Notification Engine**
+#### 3. **Parallel Notification Engine & Resilience**
 - `SubscriptionService` uses `parallelStream()` for webhook notifications, ensuring that one slow endpoint doesn't block notifications for other subscribers.
+- **Exponential Backoff**: Webhook deliveries utilize Spring Retry with exponential backoff (e.g., 1s → 2s → 4s) to handle transient network failures without dropping notifications.
+
+#### 4. **Graceful Shutdown**
+- Custom implementations of `@PreDestroy` logic ensures that internal executors (like `VirtualThreadPerTaskExecutor` in the `BatchConversionService`) complete pending operations before application termination, avoiding dropped batches during deployments.
 
 ### Concurrency Configuration
 ```properties

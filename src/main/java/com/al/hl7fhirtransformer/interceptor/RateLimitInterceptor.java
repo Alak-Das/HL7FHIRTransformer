@@ -26,7 +26,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             throws Exception {
         // Skip rate limiting for health checks and actuator endpoints
         String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/actuator/")) {
+        if (requestURI.startsWith("/actuator/") || requestURI.startsWith("/api/health")) {
             return true;
         }
 

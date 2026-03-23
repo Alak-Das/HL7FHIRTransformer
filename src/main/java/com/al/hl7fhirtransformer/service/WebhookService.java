@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.Map;
 
 /**
  * Service for sending webhook notifications on message processing events.
+ * Supports configurable retry with exponential backoff on delivery failure.
  */
 @Service
 @RequiredArgsConstructor
@@ -24,8 +26,14 @@ public class WebhookService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    @Value("${app.webhook.max-retries:3}")
+    private int maxRetries;
+
+    @Value("${app.webhook.retry-delay-ms:1000}")
+    private long retryDelayMs;
+
     /**
-     * Send a webhook notification asynchronously
+     * Send a webhook notification asynchronously with retry logic.
      * 
      * @param webhookUrl    The URL to send the notification to
      * @param transactionId The transaction ID
@@ -41,45 +49,65 @@ public class WebhookService {
             return;
         }
 
-        try {
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("transactionId", transactionId);
-            payload.put("status", status);
-            payload.put("messageType", messageType);
-            payload.put("timestamp", LocalDateTime.now().toString());
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("transactionId", transactionId);
+                payload.put("status", status);
+                payload.put("messageType", messageType);
+                payload.put("timestamp", LocalDateTime.now().toString());
 
-            if (details != null) {
-                payload.put("details", details);
+                if (details != null) {
+                    payload.put("details", details);
+                }
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("X-Transaction-Id", transactionId);
+                headers.set("X-Event-Type", "message.processed");
+
+                String jsonPayload = objectMapper.writeValueAsString(payload);
+                HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
+
+                log.info("Sending webhook notification to {} for transaction {} (attempt {}/{})",
+                        webhookUrl, transactionId, attempt, maxRetries);
+
+                ResponseEntity<String> response = restTemplate.exchange(
+                        webhookUrl,
+                        HttpMethod.POST,
+                        request,
+                        String.class);
+
+                if (response.getStatusCode().is2xxSuccessful()) {
+                    log.info("Webhook notification sent successfully for transaction {}, status: {}",
+                            transactionId, response.getStatusCode());
+                    return; // Success — exit retry loop
+                } else {
+                    log.warn("Webhook notification returned non-success status {} for transaction {} (attempt {}/{})",
+                            response.getStatusCode(), transactionId, attempt, maxRetries);
+                }
+
+            } catch (Exception e) {
+                log.error("Failed to send webhook notification for transaction {} (attempt {}/{}): {}",
+                        transactionId, attempt, maxRetries, e.getMessage());
+
+                if (attempt == maxRetries) {
+                    log.error("All {} webhook delivery attempts exhausted for transaction {}. Notification dropped.",
+                            maxRetries, transactionId);
+                    return; // Don't rethrow — webhook failures should not affect main processing
+                }
             }
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-Transaction-Id", transactionId);
-            headers.set("X-Event-Type", "message.processed");
-
-            String jsonPayload = objectMapper.writeValueAsString(payload);
-            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
-
-            log.info("Sending webhook notification to {} for transaction {}", webhookUrl, transactionId);
-
-            ResponseEntity<String> response = restTemplate.exchange(
-                    webhookUrl,
-                    HttpMethod.POST,
-                    request,
-                    String.class);
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Webhook notification sent successfully for transaction {}, status: {}",
-                        transactionId, response.getStatusCode());
-            } else {
-                log.warn("Webhook notification returned non-success status {} for transaction {}",
-                        response.getStatusCode(), transactionId);
+            // Exponential backoff: delay * 2^(attempt-1)
+            try {
+                long delay = retryDelayMs * (1L << (attempt - 1));
+                log.debug("Waiting {}ms before webhook retry attempt {}", delay, attempt + 1);
+                Thread.sleep(delay);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.warn("Webhook retry interrupted for transaction {}", transactionId);
+                return;
             }
-
-        } catch (Exception e) {
-            log.error("Failed to send webhook notification for transaction {}: {}",
-                    transactionId, e.getMessage());
-            // Don't rethrow - webhook failures should not affect the main processing
         }
     }
 

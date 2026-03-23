@@ -310,6 +310,21 @@ Enabled by default for high-concurrency services:
 - **Singleton Validation Chain**: Configured as a Spring Bean to avoid repeated initialization costs.
 - **Cached Schemas**: Validation support chain caches FHIR profiles in-memory.
 
+#### **Batch Configuration**
+```properties
+# Maximum number of messages allowed in a single batch request
+app.batch.max-size=100
+```
+
+#### **Webhook Notifications**
+```properties
+# Number of retry attempts for failed webhook deliveries
+app.webhook.max-retries=3
+
+# Base delay in milliseconds for exponential backoff (e.g., 1s -> 2s -> 4s)
+app.webhook.retry-delay-ms=1000
+```
+
 ---
 
 ## OpenAPI & Swagger UI Configuration

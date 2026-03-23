@@ -21,8 +21,10 @@ public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final WebhookService webhookService;
+    private final ca.uhn.fhir.context.FhirContext fhirContext;
 
     public SubscriptionEntity createSubscription(String tenantId, String criteria, String endpoint) {
+        validateEndpointUrl(endpoint);
         SubscriptionEntity entity = new SubscriptionEntity();
         entity.setTenantId(tenantId);
         entity.setCriteria(criteria);
@@ -58,6 +60,7 @@ public class SubscriptionService {
             entity.setCriteria(criteria);
         }
         if (endpoint != null && !endpoint.isBlank()) {
+            validateEndpointUrl(endpoint);
             entity.setEndpoint(endpoint);
         }
         entity.setLastUpdatedDate(LocalDateTime.now());
@@ -156,10 +159,9 @@ public class SubscriptionService {
         }
 
         // Check each resource's JSON for presence of all param key+value pairs
-        ca.uhn.fhir.context.FhirContext ctx = ca.uhn.fhir.context.FhirContext.forR4();
         for (Resource resource : matchingTypeResources) {
             try {
-                String resourceJson = ctx.newJsonParser().encodeResourceToString(resource);
+                String resourceJson = fhirContext.newJsonParser().encodeResourceToString(resource);
                 boolean allParamsMatch = params.entrySet().stream()
                         .allMatch(e -> resourceJson.contains("\"" + e.getKey() + "\"")
                                 && resourceJson.contains("\"" + e.getValue() + "\""));
@@ -184,5 +186,67 @@ public class SubscriptionService {
             }
         }
         return params;
+    }
+
+    /**
+     * Validate a webhook endpoint URL for format and SSRF protection.
+     * Blocks localhost, loopback, link-local, and private IP ranges.
+     *
+     * @param endpoint The URL to validate
+     * @throws IllegalArgumentException if the URL is invalid or points to an internal address
+     */
+    private void validateEndpointUrl(String endpoint) {
+        if (endpoint == null || endpoint.isBlank()) {
+            throw new IllegalArgumentException("Subscription endpoint URL cannot be empty");
+        }
+
+        java.net.URI uri;
+        try {
+            uri = java.net.URI.create(endpoint);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid subscription endpoint URL: " + endpoint);
+        }
+
+        String protocol = uri.getScheme();
+        if (!"http".equals(protocol) && !"https".equals(protocol)) {
+            throw new IllegalArgumentException("Subscription endpoint must use HTTP or HTTPS protocol");
+        }
+
+        String host = uri.getHost();
+        if (host == null || host.isBlank()) {
+            throw new IllegalArgumentException("Subscription endpoint URL must have a valid host");
+        }
+        host = host.toLowerCase();
+
+        // Block loopback and localhost
+        if ("localhost".equals(host) || host.startsWith("127.") || "::1".equals(host)) {
+            throw new IllegalArgumentException("Subscription endpoint cannot point to localhost");
+        }
+
+        // Block link-local addresses
+        if (host.startsWith("169.254.")) {
+            throw new IllegalArgumentException("Subscription endpoint cannot point to link-local address");
+        }
+
+        // Block private IP ranges
+        if (host.startsWith("10.") || host.startsWith("192.168.")) {
+            throw new IllegalArgumentException("Subscription endpoint cannot point to private IP address");
+        }
+
+        // Block 172.16.0.0 - 172.31.255.255
+        if (host.startsWith("172.")) {
+            try {
+                String[] parts = host.split("\\.");
+                if (parts.length >= 2) {
+                    int secondOctet = Integer.parseInt(parts[1]);
+                    if (secondOctet >= 16 && secondOctet <= 31) {
+                        throw new IllegalArgumentException(
+                                "Subscription endpoint cannot point to private IP address");
+                    }
+                }
+            } catch (NumberFormatException ignored) {
+                // Not a numeric IP, let it pass
+            }
+        }
     }
 }

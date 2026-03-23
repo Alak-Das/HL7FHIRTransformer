@@ -17,14 +17,12 @@ import com.al.hl7fhirtransformer.service.MessageEnrichmentService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.security.Principal;
 import java.util.HashMap;
@@ -86,9 +84,13 @@ public class ConverterController {
     @PostMapping(value = "/v2-to-fhir", consumes = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<Map<String, String>> convertToFhir(@RequestBody String hl7Message, Principal principal,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        // Idempotency check
+        // Idempotency check — return existing transaction info on duplicate
         if (idempotencyKey != null && idempotencyService.isDuplicate(idempotencyKey)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Duplicate request"));
+            Map<String, String> cached = new HashMap<>();
+            cached.put("status", "Already Processed");
+            cached.put("message", "Request with this Idempotency-Key has already been processed");
+            cached.put("idempotencyKey", idempotencyKey);
+            return ResponseEntity.ok(cached);
         }
 
         String tenantId = principal != null ? principal.getName() : "default";
@@ -97,7 +99,7 @@ public class ConverterController {
         String messageWithId = enriched.getContent();
 
         auditService.logTransaction(tenantId, transactionId, MessageType.V2_TO_FHIR_ASYNC, TransactionStatus.ACCEPTED,
-                null);
+                idempotencyKey);
 
         // Send to RabbitMQ
         rabbitTemplate.convertAndSend(exchange, routingKey, messageWithId, message -> {
@@ -144,8 +146,13 @@ public class ConverterController {
     @PostMapping(value = "/fhir-to-v2", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> convertToHl7(@RequestBody String fhirJson, Principal principal,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        // Idempotency check — return existing transaction info on duplicate
         if (idempotencyKey != null && idempotencyService.isDuplicate(idempotencyKey)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Duplicate request"));
+            Map<String, String> cached = new HashMap<>();
+            cached.put("status", "Already Processed");
+            cached.put("message", "Request with this Idempotency-Key has already been processed");
+            cached.put("idempotencyKey", idempotencyKey);
+            return ResponseEntity.ok(cached);
         }
 
         String tenantId = principal != null ? principal.getName() : "default";
@@ -159,7 +166,7 @@ public class ConverterController {
         String contentWithId = enriched.getContent();
 
         auditService.logTransaction(tenantId, transactionId, MessageType.FHIR_TO_V2_ASYNC, TransactionStatus.QUEUED,
-                null);
+                idempotencyKey);
 
         rabbitTemplate.convertAndSend(fhirExchange, fhirRoutingKey, contentWithId, message -> {
             message.getMessageProperties().setHeader("transformerId", transactionId);
@@ -211,6 +218,9 @@ public class ConverterController {
     public ResponseEntity<BatchConversionResponse> processHl7Batch(@RequestBody BatchHl7Request request,
             Principal principal) {
         String tenantId = principal != null ? principal.getName() : "default";
+        log.info("Batch HL7→FHIR request from tenant {}: {} messages", tenantId, request.getMessages().size());
+        auditService.logTransaction(tenantId, "BATCH-" + System.currentTimeMillis(),
+                MessageType.V2_TO_FHIR_SYNC, TransactionStatus.ACCEPTED);
         BatchConversionResponse response = batchConversionService.convertHl7ToFhirBatch(request.getMessages());
         return ResponseEntity.ok(response);
     }
@@ -219,6 +229,9 @@ public class ConverterController {
     public ResponseEntity<BatchConversionResponse> processFhirBatch(@RequestBody List<String> request,
             Principal principal) {
         String tenantId = principal != null ? principal.getName() : "default";
+        log.info("Batch FHIR→HL7 request from tenant {}: {} bundles", tenantId, request.size());
+        auditService.logTransaction(tenantId, "BATCH-" + System.currentTimeMillis(),
+                MessageType.FHIR_TO_V2_SYNC, TransactionStatus.ACCEPTED);
         BatchConversionResponse response = batchConversionService.convertFhirToHl7Batch(request);
         return ResponseEntity.ok(response);
     }
@@ -227,15 +240,10 @@ public class ConverterController {
     public ResponseEntity<BatchConversionResponse> processBatch(@RequestBody BatchHl7Request request,
             Principal principal) {
         String tenantId = principal != null ? principal.getName() : "default";
+        log.info("Batch request from tenant {}: {} messages", tenantId, request.getMessages().size());
+        auditService.logTransaction(tenantId, "BATCH-" + System.currentTimeMillis(),
+                MessageType.V2_TO_FHIR_SYNC, TransactionStatus.ACCEPTED);
         BatchConversionResponse response = batchConversionService.processBatch(request, tenantId);
         return ResponseEntity.ok(response);
-    }
-
-    @ExceptionHandler({ IllegalArgumentException.class, ca.uhn.hl7v2.HL7Exception.class })
-    public ResponseEntity<Map<String, String>> handleClientErrors(Exception e) {
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "Error");
-        response.put("message", e.getMessage());
-        return ResponseEntity.badRequest().body(response);
     }
 }

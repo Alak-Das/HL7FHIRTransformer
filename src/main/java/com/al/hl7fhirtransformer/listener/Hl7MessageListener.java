@@ -91,7 +91,7 @@ public class Hl7MessageListener {
 
                 log.info("Message routed to retry queue '{}' (attempt {} of 3)", retryRoutingKey, nextRetry);
             } else {
-                // Max retries exhausted
+                // Max retries exhausted — route to DLQ explicitly
                 if (transactionId != null) {
                     auditService.updateTransactionFailure(transactionId, "FAILED", e.getMessage(), retryCount);
                     if (defaultWebhookUrl != null) {
@@ -99,8 +99,13 @@ public class Hl7MessageListener {
                                 retryCount);
                     }
                 }
-                log.error("Max retries exhausted for transaction: {}", transactionId);
-                throw new RuntimeException("Max retries exceeded after 3 attempts", e);
+                log.error("Max retries exhausted for transaction: {}. Routing to DLQ.", transactionId);
+                rabbitTemplate.convertAndSend("hl7-messages-dlx", "hl7.message.dl", hl7Message, message -> {
+                    message.getMessageProperties().setHeader("x-retry-count", retryCount);
+                    message.getMessageProperties().setHeader("tenantId", tenantId);
+                    message.getMessageProperties().setHeader("x-failure-reason", e.getMessage());
+                    return message;
+                });
             }
 
         } finally {
