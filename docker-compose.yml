@@ -2,7 +2,7 @@ services:
   hl7-fhir-transformer:
     build: .
     ports:
-      - "8090:8080"
+      - "9091:8080"
 
     restart: unless-stopped
     container_name: hl7-fhir-transformer
