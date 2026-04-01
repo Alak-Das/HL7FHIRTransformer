@@ -2,6 +2,7 @@ package com.al.hl7fhirtransformer.config;
 
 import com.al.hl7fhirtransformer.interceptor.RateLimitInterceptor;
 import com.al.hl7fhirtransformer.interceptor.MdcInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -13,6 +14,9 @@ public class WebConfig implements WebMvcConfigurer {
     private final TenantInterceptor tenantInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
     private final MdcInterceptor mdcInterceptor;
+
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
+    private String allowedOrigins;
 
     public WebConfig(TenantInterceptor tenantInterceptor, RateLimitInterceptor rateLimitInterceptor,
             MdcInterceptor mdcInterceptor) {
@@ -35,7 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")
+                .allowedOrigins(allowedOrigins.split(","))
                 .allowedMethods("GET", "POST", "PUT", "DELETE");
     }
 
@@ -48,3 +52,4 @@ public class WebConfig implements WebMvcConfigurer {
         return mapper;
     }
 }
+

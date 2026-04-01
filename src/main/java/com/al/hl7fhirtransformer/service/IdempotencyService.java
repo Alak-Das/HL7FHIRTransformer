@@ -5,19 +5,26 @@ import com.al.hl7fhirtransformer.repository.TransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class IdempotencyService {
     private static final Logger log = LoggerFactory.getLogger(IdempotencyService.class);
+    private static final String IDEMPOTENCY_KEY_PREFIX = "idempotency:";
+    private static final long IDEMPOTENCY_TTL_HOURS = 24;
 
     private final TransactionRepository transactionRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    public IdempotencyService(TransactionRepository transactionRepository) {
+    public IdempotencyService(TransactionRepository transactionRepository,
+            RedisTemplate<String, Object> redisTemplate) {
         this.transactionRepository = transactionRepository;
+        this.redisTemplate = redisTemplate;
     }
 
     /**
@@ -61,12 +68,36 @@ public class IdempotencyService {
     }
 
     /**
-     * Check if a request with the given idempotency key is a duplicate.
-     * 
+     * Atomically check if a request with the given idempotency key is a duplicate.
+     * Uses Redis SETNX for atomic check-and-set to prevent race conditions between
+     * concurrent requests with the same key.
+     *
      * @param idempotencyKey The client-provided idempotency key
      * @return true if duplicate, false otherwise
      */
     public boolean isDuplicate(String idempotencyKey) {
-        return findByIdempotencyKey(idempotencyKey).isPresent();
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return false;
+        }
+
+        // Atomic check: Redis SETNX returns true only if the key was newly set
+        String redisKey = IDEMPOTENCY_KEY_PREFIX + idempotencyKey;
+        try {
+            Boolean wasSet = redisTemplate.opsForValue()
+                    .setIfAbsent(redisKey, "1", IDEMPOTENCY_TTL_HOURS, TimeUnit.HOURS);
+
+            if (Boolean.FALSE.equals(wasSet)) {
+                // Key already existed — this is a duplicate
+                log.info("Duplicate idempotency key detected (Redis): {}", idempotencyKey);
+                return true;
+            }
+            // Key was newly set — not a duplicate
+            return false;
+        } catch (Exception e) {
+            // Redis unavailable — fall back to MongoDB check
+            log.warn("Redis idempotency check failed, falling back to MongoDB: {}", e.getMessage());
+            return findByIdempotencyKey(idempotencyKey).isPresent();
+        }
     }
 }
+

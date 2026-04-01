@@ -136,11 +136,11 @@ public class FhirMessageListener {
      */
     private String extractTransactionIdFromFhir(String fhirJson) {
         try {
-            int idIndex = fhirJson.indexOf("\"id\"");
-            if (idIndex > 0) {
-                int valueStart = fhirJson.indexOf("\"", idIndex + 5) + 1;
-                int valueEnd = fhirJson.indexOf("\"", valueStart);
-                return fhirJson.substring(valueStart, valueEnd);
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(fhirJson);
+            com.fasterxml.jackson.databind.JsonNode idNode = root.get("id");
+            if (idNode != null && !idNode.isNull()) {
+                return idNode.asText();
             }
         } catch (Exception ex) {
             log.debug("Could not extract transaction ID from FHIR JSON: {}", ex.getMessage());
@@ -148,3 +148,4 @@ public class FhirMessageListener {
         return null;
     }
 }
+

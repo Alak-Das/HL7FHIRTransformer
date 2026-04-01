@@ -61,18 +61,27 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     @Autowired
     public ApiKeyAuthFilter(Environment env) {
-        // Scan all environment properties for keys with prefix app.api-keys.*
-        // Spring's RelaxedPropertyResolver is not available in Boot 3; we use the
-        // SystemEnvironment + property sources approach via Environment.
-        // Keys must be explicitly listed in application.properties.
-        String[] knownNames = { "system1", "system2", "system3", "integration", "external" };
-        for (String name : knownNames) {
-            String propKey = API_KEY_PREFIX + name;
-            String keyValue = env.getProperty(propKey);
-            if (keyValue != null && !keyValue.isBlank()) {
-                keyToPrincipal.put(keyValue, name);
-                log.info("API Key registered for principal: {}", name);
+        // Dynamically discover all app.api-keys.* properties from all property sources.
+        // Adding a new key only requires a new line in application.properties — no code change.
+        if (env instanceof org.springframework.core.env.ConfigurableEnvironment configEnv) {
+            for (org.springframework.core.env.PropertySource<?> ps : configEnv.getPropertySources()) {
+                if (ps instanceof org.springframework.core.env.EnumerablePropertySource<?> eps) {
+                    for (String propName : eps.getPropertyNames()) {
+                        if (propName.startsWith(API_KEY_PREFIX)) {
+                            String name = propName.substring(API_KEY_PREFIX.length());
+                            String keyValue = env.getProperty(propName);
+                            if (keyValue != null && !keyValue.isBlank()) {
+                                keyToPrincipal.put(keyValue, name);
+                                log.info("API Key registered for principal: {}", name);
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        if (keyToPrincipal.isEmpty()) {
+            log.warn("No API keys configured under prefix '{}'", API_KEY_PREFIX);
         }
     }
 

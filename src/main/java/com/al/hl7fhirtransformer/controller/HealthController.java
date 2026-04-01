@@ -3,6 +3,8 @@ package com.al.hl7fhirtransformer.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +33,8 @@ import java.util.Map;
 public class HealthController {
 
     private final CacheManager cacheManager;
+    private final MongoTemplate mongoTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${spring.application.name:HL7FHIRTransformer}")
     private String applicationName;
@@ -39,15 +43,20 @@ public class HealthController {
     private String version;
 
     @Autowired
-    public HealthController(CacheManager cacheManager) {
+    public HealthController(CacheManager cacheManager, MongoTemplate mongoTemplate,
+            RedisTemplate<String, Object> redisTemplate) {
         this.cacheManager = cacheManager;
+        this.mongoTemplate = mongoTemplate;
+        this.redisTemplate = redisTemplate;
     }
 
     /**
-     * Lightweight health check — no external calls, just JVM and cache metadata.
-     * Accessible to any authenticated user (ADMIN or TENANT role).
+     * Lightweight health check with external dependency probes.
+     * Reports individual status for MongoDB, Redis; overall status is DEGRADED
+     * if any dependency is down.
      *
-     * @return JSON map with application name, version, uptime, and cache names
+     * @return JSON map with application name, version, uptime, cache names, and
+     *         dependency statuses
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> health() {
@@ -55,12 +64,36 @@ public class HealthController {
         long uptimeSec = uptimeMs / 1000;
 
         Map<String, Object> info = new LinkedHashMap<>();
-        info.put("status", "UP");
         info.put("application", applicationName);
         info.put("version", version);
         info.put("uptimeSeconds", uptimeSec);
         info.put("cacheNames", cacheManager.getCacheNames());
         info.put("timestamp", java.time.Instant.now().toString());
+
+        // Dependency health checks
+        Map<String, String> dependencies = new LinkedHashMap<>();
+        boolean allHealthy = true;
+
+        // MongoDB
+        try {
+            mongoTemplate.getDb().getName();
+            dependencies.put("mongodb", "UP");
+        } catch (Exception e) {
+            dependencies.put("mongodb", "DOWN: " + e.getMessage());
+            allHealthy = false;
+        }
+
+        // Redis
+        try {
+            redisTemplate.getConnectionFactory().getConnection().ping();
+            dependencies.put("redis", "UP");
+        } catch (Exception e) {
+            dependencies.put("redis", "DOWN: " + e.getMessage());
+            allHealthy = false;
+        }
+
+        info.put("dependencies", dependencies);
+        info.put("status", allHealthy ? "UP" : "DEGRADED");
 
         return ResponseEntity.ok(info);
     }
@@ -103,3 +136,4 @@ public class HealthController {
                 "cacheName", cacheName));
     }
 }
+

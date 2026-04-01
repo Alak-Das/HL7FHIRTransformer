@@ -48,7 +48,7 @@ public class TenantService {
 
         // Check if tenant already exists
         if (tenantRepository.findByTenantId(request.getTenantId()).isPresent()) {
-            throw new IllegalArgumentException("Tenant with ID '" + request.getTenantId() + "' already exists");
+            throw new com.al.hl7fhirtransformer.exception.TenantAlreadyExistsException("Tenant with ID '" + request.getTenantId() + "' already exists");
         }
 
         Tenant tenant = new Tenant();

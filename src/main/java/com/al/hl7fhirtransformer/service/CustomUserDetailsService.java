@@ -37,7 +37,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                         this.encodedAdminPassword = null;
                 }
 
-                log.info("DEBUG: CustomUserDetailsService initialized with admin: '{}'", sanitize(this.adminUsername));
+                log.info("CustomUserDetailsService initialized with admin user: '{}'", sanitize(this.adminUsername));
         }
 
         private String sanitize(String input) {
@@ -48,11 +48,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
                 // Sanitize username for logging
                 String safeUsername = sanitize(username);
-                log.debug("DEBUG: loadUserByUsername called for: '{}'", safeUsername);
+                log.debug("loadUserByUsername called for: '{}'", safeUsername);
 
                 // First check for admin
                 if (adminUsername != null && adminUsername.equals(username)) {
-                        log.debug("DEBUG: User match ADMIN logic.");
+                        log.debug("Matched admin user.");
                         if (encodedAdminPassword == null) {
                                 throw new UsernameNotFoundException("Admin password not configured");
                         }
@@ -65,14 +65,14 @@ public class CustomUserDetailsService implements UserDetailsService {
                 }
 
                 // Check for Tenant
-                log.debug("DEBUG: checking database for tenant: {}", safeUsername);
+                log.debug("Checking database for tenant: {}", safeUsername);
                 Tenant tenant = tenantRepository.findByTenantId(username)
                                 .orElseThrow(() -> {
-                                        log.warn("DEBUG: User not found in DB: {}", safeUsername);
+                                        log.warn("User not found in DB: {}", safeUsername);
                                         return new UsernameNotFoundException("User not found: " + safeUsername);
                                 });
 
-                log.debug("DEBUG: Found tenant in DB.");
+                log.debug("Found tenant in DB: {}", safeUsername);
                 return User.builder()
                                 .username(tenant.getTenantId())
                                 .password(tenant.getPassword()) // Stored as encoded in DB

@@ -7,16 +7,25 @@ services:
     restart: unless-stopped
     container_name: hl7-fhir-transformer
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://admin:supersecret@host.docker.internal:27017/admin?authSource=admin
+      MONGODB_URI: mongodb://admin:supersecret@host.docker.internal:27017/admin?authSource=admin
       SPRING_RABBITMQ_HOST: host.docker.internal
       SPRING_DATA_REDIS_HOST: host.docker.internal
+      REDIS_PASSWORD: supersecret
+      RABBITMQ_USERNAME: admin
+      RABBITMQ_PASSWORD: supersecret
+      ADMIN_PASSWORD: changeme-admin
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    volumes:
-      - ./src/main/resources/application.properties:/app/config/application.properties
     deploy:
       resources:
         limits:
           memory: 2G
         reservations:
           memory: 1G
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+

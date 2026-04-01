@@ -46,9 +46,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/ack/**").hasAnyRole("ADMIN", "TENANT")
                         // Subscription management — admin or tenant
                         .requestMatchers("/api/subscriptions/**").hasAnyRole("ADMIN", "TENANT")
-                        // Health GET — any authenticated user; cache DELETE — admin only
+                        // Health GET — unauthenticated required for docker/k8s probes; cache DELETE — admin only
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/health")
-                        .hasAnyRole("ADMIN", "TENANT")
+                        .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/health/cache/**")
                         .hasRole("ADMIN")
                         // Everything else requires authentication

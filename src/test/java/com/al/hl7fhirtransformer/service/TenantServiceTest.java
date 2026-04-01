@@ -61,7 +61,7 @@ public class TenantServiceTest {
 
         when(tenantRepository.findByTenantId(request.getTenantId())).thenReturn(Optional.of(new Tenant()));
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(com.al.hl7fhirtransformer.exception.TenantAlreadyExistsException.class, () -> {
             tenantService.onboardTenant(request);
         });
 

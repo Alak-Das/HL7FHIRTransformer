@@ -10,7 +10,7 @@
         "basic": [
             {
                 "key": "password",
-                "value": "password",
+                "value": "changeme-admin",
                 "type": "string"
             },
             {
@@ -62,7 +62,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -123,7 +123,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -193,7 +193,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -261,7 +261,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -341,7 +341,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -425,7 +425,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -505,7 +505,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -580,7 +580,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -652,7 +652,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -726,7 +726,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -800,7 +800,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -890,7 +890,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1115,7 +1115,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1175,7 +1175,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1251,7 +1251,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1331,7 +1331,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1405,7 +1405,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1479,7 +1479,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1579,7 +1579,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1661,7 +1661,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1736,7 +1736,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1809,7 +1809,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1882,7 +1882,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -1955,7 +1955,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2031,7 +2031,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2104,7 +2104,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2177,7 +2177,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2253,7 +2253,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2386,7 +2386,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2445,7 +2445,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2504,7 +2504,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2562,7 +2562,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2631,7 +2631,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2730,7 +2730,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2817,7 +2817,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2894,7 +2894,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2939,7 +2939,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -2975,7 +2975,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -3045,7 +3045,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -3214,7 +3214,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -3274,7 +3274,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -4134,7 +4134,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -4195,7 +4195,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {
@@ -4251,7 +4251,7 @@
                             "basic": [
                                 {
                                     "key": "password",
-                                    "value": "password",
+                                    "value": "changeme-admin",
                                     "type": "string"
                                 },
                                 {

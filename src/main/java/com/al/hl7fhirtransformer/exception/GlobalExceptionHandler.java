@@ -66,6 +66,23 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, "Tenant Already Exists", e.getMessage(), request);
     }
 
+    @ExceptionHandler(com.al.hl7fhirtransformer.exception.RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceeded(
+            com.al.hl7fhirtransformer.exception.RateLimitExceededException e, HttpServletRequest request) {
+        log.warn("Rate limit exceeded: {}", e.getMessage());
+        ErrorResponse response = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "Too Many Requests",
+                e.getMessage(),
+                request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(e.getRetryAfterSeconds()))
+                .header("X-RateLimit-Limit", String.valueOf(e.getLimit()))
+                .header("X-RateLimit-Remaining", "0")
+                .body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralError(Exception e, HttpServletRequest request) {
         log.error("Internal Server Error: ", e);

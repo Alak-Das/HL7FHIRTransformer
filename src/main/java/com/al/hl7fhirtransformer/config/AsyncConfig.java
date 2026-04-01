@@ -21,28 +21,36 @@ public class AsyncConfig {
         executor.setMaxPoolSize(20);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("async-");
-        executor.setTaskDecorator(new MdcTaskDecorator());
+        executor.setTaskDecorator(new ContextPropagatingDecorator());
         executor.initialize();
         return executor;
     }
 
     /**
-     * Decorator to propagate MDC context to async threads
+     * Decorator to propagate MDC context AND TenantContext to async threads.
+     * Without this, @Async methods and virtual threads would lose the
+     * tenant identity set on the originating request thread.
      */
-    static class MdcTaskDecorator implements TaskDecorator {
+    static class ContextPropagatingDecorator implements TaskDecorator {
         @Override
         public Runnable decorate(Runnable runnable) {
             Map<String, String> contextMap = MDC.getCopyOfContextMap();
+            String tenantId = TenantContext.getTenantId();
             return () -> {
                 try {
                     if (contextMap != null) {
                         MDC.setContextMap(contextMap);
                     }
+                    if (tenantId != null) {
+                        TenantContext.setTenantId(tenantId);
+                    }
                     runnable.run();
                 } finally {
                     MDC.clear();
+                    TenantContext.clear();
                 }
             };
         }
     }
 }
+

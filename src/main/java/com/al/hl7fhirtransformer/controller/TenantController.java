@@ -3,6 +3,7 @@ package com.al.hl7fhirtransformer.controller;
 import com.al.hl7fhirtransformer.dto.TransactionSummaryResponse;
 import com.al.hl7fhirtransformer.dto.TransactionDTO;
 import com.al.hl7fhirtransformer.dto.TenantOnboardRequest;
+import com.al.hl7fhirtransformer.dto.TenantResponse;
 import com.al.hl7fhirtransformer.dto.TenantUpdateRequest;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -41,8 +42,11 @@ public class TenantController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Tenant>> getAllTenants() {
-        return ResponseEntity.ok(tenantService.getAllTenants());
+    public ResponseEntity<List<TenantResponse>> getAllTenants() {
+        List<TenantResponse> responses = tenantService.getAllTenants().stream()
+                .map(TenantResponse::from)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/{tenantId}/transactions")
@@ -111,17 +115,17 @@ public class TenantController {
      * Onboard a new tenant with optional rate limit configuration.
      */
     @PostMapping("/onboard")
-    public ResponseEntity<Tenant> onboardTenant(@Valid @RequestBody TenantOnboardRequest request) {
+    public ResponseEntity<TenantResponse> onboardTenant(@Valid @RequestBody TenantOnboardRequest request) {
         log.info("Received request to onboard tenant: {}", request.getTenantId());
         Tenant tenant = tenantService.onboardTenant(request);
-        return ResponseEntity.ok(tenant);
+        return ResponseEntity.ok(TenantResponse.from(tenant));
     }
 
     @PutMapping("/{tenantId}")
-    public ResponseEntity<Tenant> updateTenant(@PathVariable String tenantId,
+    public ResponseEntity<TenantResponse> updateTenant(@PathVariable String tenantId,
             @Valid @RequestBody TenantUpdateRequest request) {
         Tenant tenant = tenantService.updateTenant(tenantId, request.getPassword(), request.getName());
-        return ResponseEntity.ok(tenant);
+        return ResponseEntity.ok(TenantResponse.from(tenant));
     }
 
     @DeleteMapping("/{tenantId}")

@@ -41,6 +41,9 @@ public class BatchConversionService {
     @Value("${app.batch.max-size:100}")
     private int maxBatchSize;
 
+    @Value("${app.batch.timeout-seconds:120}")
+    private int batchTimeoutSeconds;
+
     @Autowired
     public BatchConversionService(Hl7ToFhirService hl7ToFhirService,
             FhirToHl7Service fhirToHl7Service) {
@@ -136,8 +139,17 @@ public class BatchConversionService {
             futures.add(future);
         }
 
-        // Wait for all conversions to complete
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        // Wait for all conversions to complete with timeout
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .get(batchTimeoutSeconds, TimeUnit.SECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            log.error("Batch HL7 to FHIR conversion timed out after {}s", batchTimeoutSeconds);
+            // Cancel remaining futures
+            futures.forEach(f -> f.cancel(true));
+        } catch (Exception e) {
+            log.error("Error waiting for batch completion: {}", e.getMessage());
+        }
 
         // Collect results and errors
         for (int i = 0; i < futures.size(); i++) {
@@ -221,8 +233,17 @@ public class BatchConversionService {
             futures.add(future);
         }
 
-        // Wait for all conversions to complete
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        // Wait for all conversions to complete with timeout
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .get(batchTimeoutSeconds, TimeUnit.SECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            log.error("Batch FHIR to HL7 conversion timed out after {}s", batchTimeoutSeconds);
+            // Cancel remaining futures
+            futures.forEach(f -> f.cancel(true));
+        } catch (Exception e) {
+            log.error("Error waiting for batch completion: {}", e.getMessage());
+        }
 
         // Collect results and errors
         for (int i = 0; i < futures.size(); i++) {
@@ -263,12 +284,11 @@ public class BatchConversionService {
      */
     private String extractMessageId(String fhirJson) {
         try {
-            // Simple extraction - look for "id" field
-            int idIndex = fhirJson.indexOf("\"id\"");
-            if (idIndex > 0) {
-                int valueStart = fhirJson.indexOf("\"", idIndex + 5) + 1;
-                int valueEnd = fhirJson.indexOf("\"", valueStart);
-                return fhirJson.substring(valueStart, valueEnd);
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(fhirJson);
+            com.fasterxml.jackson.databind.JsonNode idNode = root.get("id");
+            if (idNode != null && !idNode.isNull()) {
+                return idNode.asText();
             }
         } catch (Exception e) {
             log.debug("Could not extract message ID from FHIR: {}", e.getMessage());

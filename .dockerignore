@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# IDE files
+.idea
+.vscode
+*.iml
+
+# Build output
+target/
+
+# Documentation
+docs/
+README.md
+LICENSE
+
+# Test collections
+postman/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker (prevent recursive context)
+docker-compose.yml
+docker-compose.override.yml
