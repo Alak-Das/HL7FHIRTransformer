@@ -48,7 +48,7 @@ docker-compose up -d
 ```
 
 This starts:
-- **HL7FHIRTransformer**: Main application (port 8090)
+- **HL7FHIRTransformer**: Main application (port 9091)
 - **rabbitmq**: Message broker (ports 5672 AMQP, 15672 management UI)
 - **mongo**: Database (port 27017)
 - **redis**: Cache (port 6379)
@@ -59,31 +59,31 @@ This starts:
 docker-compose ps
 
 # Expected output:
-# HL7FHIRTransformer    running    0.0.0.0:8090->8080/tcp
+# HL7FHIRTransformer    running    0.0.0.0:9091->8080/tcp
 # fhir-mq             running    5672/tcp, 15672/tcp
 # fhir-mongo          running    27017/tcp
 # fhir-redis          running    0.0.0.0:6379->6379/tcp
 
 # Test health endpoint
-curl http://localhost:8090/actuator/health -u admin:password
+curl http://localhost:9091/actuator/health -u admin:changeme-admin
 
 # Verify Swagger UI
-# visit http://localhost:8090/swagger-ui.html in your browser
+# visit http://localhost:9091/swagger-ui.html in your browser
 ```
 
 #### Step 4: Test Conversion
 ```bash
-curl -X POST http://localhost:8090/api/convert/v2-to-fhir-sync \
+curl -X POST http://localhost:9091/api/convert/v2-to-fhir-sync \
   -H "Content-Type: text/plain" \
-  -u admin:password \
+  -u admin:changeme-admin \
   --data "MSH|^~\&|SYS|FAC|REC|FAC|20240119120000||ADT^A01|MSG001|P|2.5
 PID|1||12345||Doe^John||19800101|M"
 ```
 
 #### Step 5: Access Management UIs
 - **RabbitMQ Management**: http://localhost:15672 (guest/guest)
-- **Swagger UI**: http://localhost:8090/swagger-ui.html
-- **Application**: http://localhost:8090
+- **Swagger UI**: http://localhost:9091/swagger-ui.html
+- **Application**: http://localhost:9091
 
 #### Stop Services
 ```bash
@@ -128,10 +128,10 @@ mvn spring-boot:run
 
 #### Step 4: Verify
 ```bash
-curl http://localhost:8080/actuator/health -u admin:password
+curl http://localhost:8080/actuator/health -u admin:changeme-admin
 ```
 
-**Note**: Application runs on port **8080** (not 8090 as in Docker).
+**Note**: Application runs on port **8080** (not 9091 as in Docker).
 
 ---
 
@@ -200,7 +200,7 @@ docker build -t HL7FHIRTransformer:latest .
 ```bash
 docker run -d \
   --name HL7FHIRTransformer \
-  -p 8090:8080 \
+  -p 9091:8080 \
   -e MONGODB_URI=mongodb://host.docker.internal:27017/HL7FHIRTransformer \
   -e RABBITMQ_HOST=host.docker.internal \
   -e REDIS_HOST=host.docker.internal \
@@ -492,7 +492,7 @@ docker logs HL7FHIRTransformer
 
 **Common Causes**:
 - **MongoDB not ready**: Ensure `depends_on: mongo: condition: service_healthy`
-- **Port conflict**: Change `ports: "8091:8080"` if 8090 is in use
+- **Port conflict**: Change `ports: "8091:8080"` if 9091 is in use
 - **Memory limit**: Increase `deploy.resources.limits.memory` in `docker-compose.yml`
 
 #### 2. RabbitMQ Connection Refused
@@ -563,7 +563,7 @@ spring.cache.redis.time-to-live=7200000  # 2 hours
 
 #### Application Health
 ```bash
-curl http://localhost:8090/actuator/health -u admin:password
+curl http://localhost:9091/actuator/health -u admin:changeme-admin
 
 # Expected:
 # {"status":"UP","components":{"mongo":"UP","rabbit":"UP","redis":"UP"}}

@@ -115,8 +115,9 @@ cd HL7FHIRTransformer
 # Start all services
 docker compose up -d --build
 
-# Application runs on http://localhost:8090
-# Swagger UI: http://localhost:8090/swagger-ui.html
+# Application runs on http://localhost:9091
+# Swagger UI: http://localhost:9091/swagger-ui.html
+# Health check: http://localhost:9091/api/health
 # RabbitMQ Management UI: http://localhost:15672 (admin/supersecret)
 ```
 
@@ -124,17 +125,17 @@ docker compose up -d --build
 
 ```bash
 # Convert HL7 to FHIR (Sync)
-curl -X POST http://localhost:8090/api/convert/v2-to-fhir-sync \
+curl -X POST http://localhost:9091/api/convert/v2-to-fhir-sync \
   -H "Content-Type: text/plain" \
-  -u admin:password \
+  -u admin:changeme-admin \
   --data "MSH|^~\&|SENDING|FACILITY|RECEIVING|FACILITY|20240119120000||ADT^A01|MSG001|P|2.5
 PID|1||12345||Doe^John||19800101|M|||123 Main St^^New York^NY^10001"
 
 # Convert HL7 to FHIR (Async with Idempotency)
-curl -X POST http://localhost:8090/api/convert/v2-to-fhir \
+curl -X POST http://localhost:9091/api/convert/v2-to-fhir \
   -H "Content-Type: text/plain" \
   -H "Idempotency-Key: unique-request-123" \
-  -u admin:password \
+  -u admin:changeme-admin \
   --data "MSH|^~\&|SENDING|FACILITY|RECEIVING|FACILITY|20240119120000||ADT^A01|MSG001|P|2.5
 PID|1||12345||Doe^John||19800101|M|||123 Main St^^New York^NY^10001"
 ```

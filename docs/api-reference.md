@@ -78,7 +78,7 @@ Password: password
 **Request**:
 ```http
 POST /api/convert/v2-to-fhir HTTP/1.1
-Host: localhost:8090
+Host: localhost:9091
 Authorization: Basic YWRtaW46cGFzc3dvcmQ=
 Content-Type: text/plain
 Idempotency-Key: unique-request-id-12345
@@ -147,7 +147,7 @@ Content-Type: application/json
 **Request**:
 ```http
 POST /api/convert/v2-to-fhir-sync HTTP/1.1
-Host: localhost:8090
+Host: localhost:9091
 Authorization: Basic YWRtaW46cGFzc3dvcmQ=
 Content-Type: text/plain
 
@@ -215,7 +215,7 @@ Content-Type: application/json
 **Request**:
 ```http
 POST /api/convert/fhir-to-v2 HTTP/1.1
-Host: localhost:8090
+Host: localhost:9091
 Authorization: Basic YWRtaW46cGFzc3dvcmQ=
 Content-Type: application/json
 
@@ -763,32 +763,32 @@ For higher throughput:
 
 ```bash
 # Sync HL7 to FHIR
-curl -X POST http://localhost:8090/api/convert/v2-to-fhir-sync \
+curl -X POST http://localhost:9091/api/convert/v2-to-fhir-sync \
   -H "Content-Type: text/plain" \
-  -u admin:password \
+  -u admin:changeme-admin \
   --data-binary @sample_hl7.txt
 
 # Async FHIR to HL7
-curl -X POST http://localhost:8090/api/convert/fhir-to-v2 \
+curl -X POST http://localhost:9091/api/convert/fhir-to-v2 \
   -H "Content-Type: application/json" \
-  -u admin:password \
+  -u admin:changeme-admin \
   -d @sample_bundle.json
 
 # Batch Conversion
-curl -X POST http://localhost:8090/api/convert/v2-to-fhir-batch \
+curl -X POST http://localhost:9091/api/convert/v2-to-fhir-batch \
   -H "Content-Type: application/json" \
-  -u admin:password \
+  -u admin:changeme-admin \
   -d '{"messages":["MSH|...","MSH|..."]}'
 
 # Onboard Tenant
-curl -X POST http://localhost:8090/api/tenants/onboard \
+curl -X POST http://localhost:9091/api/tenants/onboard \
   -H "Content-Type: application/json" \
-  -u admin:password \
+  -u admin:changeme-admin \
   -d '{"tenantId":"clinic1","password":"secret","name":"Clinic 1"}'
 
 # Get Audit Logs
-curl -X GET "http://localhost:8090/api/tenants/admin/transactions?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59" \
-  -u admin:password
+curl -X GET "http://localhost:9091/api/tenants/admin/transactions?startDate=2024-01-01T00:00:00&endDate=2024-12-31T23:59:59" \
+  -u admin:changeme-admin
 ```
 
 ### Postman Collection
@@ -808,7 +808,7 @@ newman run postman/hl7-fhir-transformer.postman_collection.json \
 For an interactive experience where you can test the APIs in real-time, visit the built-in Swagger UI:
 
 - **Local URL**: `http://localhost:8080/swagger-ui.html`
-- **Docker URL**: `http://localhost:8090/swagger-ui.html`
+- **Docker URL**: `http://localhost:9091/swagger-ui.html`
 
 The Swagger UI provides:
 - Live API testing with Basic Auth support.

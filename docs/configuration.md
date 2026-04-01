@@ -570,10 +570,10 @@ docker logs HL7FHIRTransformer | grep "Lettuce"
 ### Test Configuration via Actuator
 ```bash
 # Check environment variables
-curl http://localhost:8090/actuator/env -u admin:password
+curl http://localhost:9091/actuator/env -u admin:changeme-admin
 
 # Check configuration properties
-curl http://localhost:8090/actuator/configprops -u admin:password
+curl http://localhost:9091/actuator/configprops -u admin:changeme-admin
 ```
 
 ---
