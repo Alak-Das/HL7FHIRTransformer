@@ -15,6 +15,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,8 +60,11 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     private static final String API_KEY_HEADER = "X-API-Key";
     private static final String API_KEY_PREFIX = "app.api-keys.";
 
-    /** Loaded once at filter instantiation from application properties. */
-    private final Map<String, String> keyToPrincipal = new ConcurrentHashMap<>();
+    /**
+     * Maps SHA-256 hash of API key → principal name.
+     * Raw keys are never stored in memory to prevent exposure via heap dumps.
+     */
+    private final Map<String, String> hashedKeyToPrincipal = new ConcurrentHashMap<>();
 
     @Autowired
     public ApiKeyAuthFilter(Environment env) {
@@ -71,7 +78,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                             String name = propName.substring(API_KEY_PREFIX.length());
                             String keyValue = env.getProperty(propName);
                             if (keyValue != null && !keyValue.isBlank()) {
-                                keyToPrincipal.put(keyValue, name);
+                                hashedKeyToPrincipal.put(hashKey(keyValue), name);
                                 log.info("API Key registered for principal: {}", name);
                             }
                         }
@@ -80,7 +87,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             }
         }
 
-        if (keyToPrincipal.isEmpty()) {
+        if (hashedKeyToPrincipal.isEmpty()) {
             log.warn("No API keys configured under prefix '{}'", API_KEY_PREFIX);
         }
     }
@@ -94,7 +101,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         String apiKey = request.getHeader(API_KEY_HEADER);
 
         if (apiKey != null && !apiKey.isBlank()) {
-            String principal = keyToPrincipal.get(apiKey);
+            String principal = hashedKeyToPrincipal.get(hashKey(apiKey));
             if (principal != null) {
                 // Valid API key — set up authentication in SecurityContext
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
@@ -110,5 +117,20 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Compute SHA-256 hash of the given API key.
+     * Uses a constant-time hex encoding to avoid timing side-channels.
+     */
+    private static String hashKey(String rawKey) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawKey.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 is guaranteed to be available in every JVM
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 }

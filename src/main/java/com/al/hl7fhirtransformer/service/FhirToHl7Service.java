@@ -14,6 +14,7 @@ import ca.uhn.hl7v2.parser.Parser;
 import ca.uhn.hl7v2.util.Terser;
 import com.al.hl7fhirtransformer.dto.ConversionError;
 import com.al.hl7fhirtransformer.dto.FhirToHl7Result;
+import com.al.hl7fhirtransformer.model.enums.Hl7MessageType;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,7 +112,7 @@ public class FhirToHl7Service {
             }
 
             // Detect message type from bundle content
-            MessageType messageType = detectMessageType(bundle);
+            Hl7MessageType messageType = detectMessageType(bundle);
             log.info("Detected message type: {} for bundle with {} entries", messageType, bundle.getEntry().size());
 
             // Create appropriate HL7 Message based on content
@@ -262,7 +263,7 @@ public class FhirToHl7Service {
      * Detect the appropriate HL7 message type based on bundle content.
      * Prioritizes 'message' type Bundles with explicit MessageHeader.
      */
-    private MessageType detectMessageType(Bundle bundle) {
+    private Hl7MessageType detectMessageType(Bundle bundle) {
         // 1. Priority: Check for explicit MessageHeader in a 'message' type bundle
         if (bundle.getType() == Bundle.BundleType.MESSAGE && !bundle.getEntry().isEmpty()) {
             Resource firstRes = bundle.getEntryFirstRep().getResource();
@@ -274,22 +275,22 @@ public class FhirToHl7Service {
                         code = code.toUpperCase();
                         // Try exact match with supported types
                         try {
-                            return MessageType.valueOf(code.replace("^", "_"));
+                            return Hl7MessageType.valueOf(code.replace("^", "_"));
                         } catch (IllegalArgumentException e) {
                             // Continue if direct mapping fails
                         }
 
                         // Heuristic fallback for MessageHeader
                         if (code.contains("ADT"))
-                            return MessageType.ADT_A01;
+                            return Hl7MessageType.ADT_A01;
                         if (code.contains("ORM") || code.contains("O01"))
-                            return MessageType.ORM_O01;
+                            return Hl7MessageType.ORM_O01;
                         if (code.contains("ORU") || code.contains("R01"))
-                            return MessageType.ORU_R01;
+                            return Hl7MessageType.ORU_R01;
                         if (code.contains("SIU") || code.contains("S12"))
-                            return MessageType.SIU_S12;
+                            return Hl7MessageType.SIU_S12;
                         if (code.contains("MDM") || code.contains("T02"))
-                            return MessageType.MDM_T02;
+                            return Hl7MessageType.MDM_T02;
                     }
                 }
             }
@@ -317,7 +318,7 @@ public class FhirToHl7Service {
 
                     if (match && rule.getMessageType() != null) {
                         try {
-                            return MessageType.valueOf(rule.getMessageType().replace("^", "_"));
+                            return Hl7MessageType.valueOf(rule.getMessageType().replace("^", "_"));
                         } catch (IllegalArgumentException e) {
                             log.warn("Invalid message type in configuration: {}", rule.getMessageType());
                         }
@@ -371,24 +372,24 @@ public class FhirToHl7Service {
 
         // Priority-based detection
         if (hasDiagnosticReport) {
-            return MessageType.ORU_R01; // Lab/Diagnostic Results
+            return Hl7MessageType.ORU_R01; // Lab/Diagnostic Results
         } else if (hasDocumentReference) {
-            return MessageType.MDM_T02; // Document notification
+            return Hl7MessageType.MDM_T02; // Document notification
         } else if (hasAppointment) {
-            return MessageType.SIU_S12; // Scheduling
+            return Hl7MessageType.SIU_S12; // Scheduling
         } else if (hasServiceRequest || hasMedicationRequest) {
-            return MessageType.ORM_O01; // General Order
+            return Hl7MessageType.ORM_O01; // General Order
         } else if (hasPatient || hasEncounter) {
-            return MessageType.ADT_A01; // ADT (default for patient/encounter data)
+            return Hl7MessageType.ADT_A01; // ADT (default for patient/encounter data)
         }
 
-        return MessageType.ADT_A01; // Default fallback
+        return Hl7MessageType.ADT_A01; // Default fallback
     }
 
     /**
      * Create the appropriate HL7 message structure.
      */
-    private Message createHl7Message(MessageType messageType) throws Exception {
+    private Message createHl7Message(Hl7MessageType messageType) throws Exception {
         switch (messageType) {
             case ORU_R01:
                 ORU_R01 oru = new ORU_R01();
@@ -417,7 +418,7 @@ public class FhirToHl7Service {
     /**
      * Populate the MSH segment.
      */
-    private void populateMsh(Message message, MessageType messageType, Bundle bundle) throws Exception {
+    private void populateMsh(Message message, Hl7MessageType messageType, Bundle bundle) throws Exception {
         Terser terser = new Terser(message);
 
         terser.set("MSH-3", "hl7fhirtransformer");
@@ -432,14 +433,6 @@ public class FhirToHl7Service {
         }
     }
 
-    /**
-     * Supported HL7 message types.
-     */
-    public enum MessageType {
-        ADT_A01, // Admit/Visit Notification
-        ORM_O01, // General Order Message
-        ORU_R01, // Unsolicited Observation Message
-        SIU_S12, // Scheduling Information Unsolicited
-        MDM_T02 // Document Status Notification
-    }
+    // Inner MessageType enum has been extracted to
+    // com.al.hl7fhirtransformer.model.enums.Hl7MessageType
 }

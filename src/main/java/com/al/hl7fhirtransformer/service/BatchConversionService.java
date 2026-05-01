@@ -3,6 +3,7 @@ package com.al.hl7fhirtransformer.service;
 import com.al.hl7fhirtransformer.dto.BatchConversionResponse;
 import com.al.hl7fhirtransformer.dto.BatchConversionResponse.BatchItemResult;
 import com.al.hl7fhirtransformer.dto.BatchHl7Request;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ public class BatchConversionService {
 
     private final Hl7ToFhirService hl7ToFhirService;
     private final FhirToHl7Service fhirToHl7Service;
+    private final ObjectMapper objectMapper;
     private final ExecutorService executorService;
 
     @Value("${app.batch.max-size:100}")
@@ -46,9 +48,11 @@ public class BatchConversionService {
 
     @Autowired
     public BatchConversionService(Hl7ToFhirService hl7ToFhirService,
-            FhirToHl7Service fhirToHl7Service) {
+            FhirToHl7Service fhirToHl7Service,
+            ObjectMapper objectMapper) {
         this.hl7ToFhirService = hl7ToFhirService;
         this.fhirToHl7Service = fhirToHl7Service;
+        this.objectMapper = objectMapper;
         // Java 21 Virtual Threads: lightweight, scalable threading for I/O-bound tasks
         // Each conversion task runs on a virtual thread with minimal overhead
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
@@ -284,8 +288,7 @@ public class BatchConversionService {
      */
     private String extractMessageId(String fhirJson) {
         try {
-            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper()
-                    .readTree(fhirJson);
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(fhirJson);
             com.fasterxml.jackson.databind.JsonNode idNode = root.get("id");
             if (idNode != null && !idNode.isNull()) {
                 return idNode.asText();

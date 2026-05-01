@@ -3,6 +3,9 @@ package com.al.hl7fhirtransformer.service.converter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Service
 public class Hl7ConverterRegistry {
 
@@ -177,5 +180,35 @@ public class Hl7ConverterRegistry {
 
     public MessageHeaderConverter getMessageHeaderConverter() {
         return messageHeaderConverter;
+    }
+
+    /**
+     * Returns all standard converters in the correct execution order.
+     * Special case converters (like OrderConverter vs ServiceRequestConverter based on message type)
+     * are not included in this default list and should be handled dynamically.
+     */
+    public Map<String, SegmentConverter<?>> getStandardConverters() {
+        Map<String, SegmentConverter<?>> converters = new LinkedHashMap<>();
+        converters.put("Organization", organizationConverter);
+        converters.put("Location", locationConverter);
+        converters.put("Patient", patientConverter);
+        converters.put("Encounter", encounterConverter);
+        converters.put("Observation", observationConverter);
+        converters.put("Condition", conditionConverter);
+        converters.put("AllergyIntolerance", allergyConverter);
+        converters.put("MedicationRequest", medicationConverter);
+        converters.put("MedicationAdministration", medicationAdministrationConverter);
+        converters.put("Practitioner", practitionerConverter);
+        converters.put("Procedure", procedureConverter);
+        converters.put("Specimen", specimenConverter);
+        converters.put("DiagnosticReport", diagnosticReportConverter);
+        converters.put("Immunization", immunizationConverter);
+        converters.put("Appointment", appointmentConverter);
+        converters.put("Communication", communicationConverter);
+        converters.put("Device", deviceConverter);
+        converters.put("MessageHeader", messageHeaderConverter);
+        converters.put("CarePlan", carePlanConverter);
+        converters.put("PractitionerRole", practitionerRoleConverter);
+        return converters;
     }
 }

@@ -3,10 +3,13 @@ package com.al.hl7fhirtransformer.listener;
 import com.al.hl7fhirtransformer.service.Hl7ToFhirService;
 import com.al.hl7fhirtransformer.service.WebhookService;
 import com.al.hl7fhirtransformer.service.AuditService;
+import com.al.hl7fhirtransformer.config.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,7 +17,7 @@ public class Hl7MessageListener {
 
     private static final Logger log = LoggerFactory.getLogger(Hl7MessageListener.class);
     private final Hl7ToFhirService hl7ToFhirService;
-    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+    private final RabbitTemplate rabbitTemplate;
     private final AuditService auditService;
     private final WebhookService webhookService;
 
@@ -25,7 +28,7 @@ public class Hl7MessageListener {
     private String defaultWebhookUrl;
 
     public Hl7MessageListener(Hl7ToFhirService hl7ToFhirService,
-            org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate,
+            RabbitTemplate rabbitTemplate,
             AuditService auditService,
             WebhookService webhookService) {
         this.hl7ToFhirService = hl7ToFhirService;
@@ -37,11 +40,11 @@ public class Hl7MessageListener {
     @RabbitListener(queues = "${app.rabbitmq.queue}")
     public void receiveMessage(
             String hl7Message,
-            @org.springframework.messaging.handler.annotation.Header(value = "tenantId", required = false) String tenantId,
-            @org.springframework.messaging.handler.annotation.Header(value = "x-retry-count", required = false, defaultValue = "0") Integer retryCount) {
+            @Header(value = "tenantId", required = false) String tenantId,
+            @Header(value = "x-retry-count", required = false, defaultValue = "0") Integer retryCount) {
         try {
             if (tenantId != null) {
-                com.al.hl7fhirtransformer.config.TenantContext.setTenantId(tenantId);
+                TenantContext.setTenantId(tenantId);
             }
             log.info("Processing HL7 message with TenantID: {} (retry attempt: {})", tenantId, retryCount);
 
@@ -109,7 +112,7 @@ public class Hl7MessageListener {
             }
 
         } finally {
-            com.al.hl7fhirtransformer.config.TenantContext.clear();
+            TenantContext.clear();
         }
     }
 

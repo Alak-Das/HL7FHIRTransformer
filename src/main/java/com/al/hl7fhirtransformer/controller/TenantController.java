@@ -20,6 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +33,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tenants")
+@Tag(name = "Tenants", description = "Tenant management and transaction history")
 public class TenantController {
     private static final Logger log = LoggerFactory.getLogger(TenantController.class);
 
@@ -41,6 +46,7 @@ public class TenantController {
         this.transactionService = transactionService;
     }
 
+    @Operation(summary = "List Tenants", description = "Get a list of all onboarded tenants.")
     @GetMapping
     public ResponseEntity<List<TenantResponse>> getAllTenants() {
         List<TenantResponse> responses = tenantService.getAllTenants().stream()
@@ -49,13 +55,14 @@ public class TenantController {
         return ResponseEntity.ok(responses);
     }
 
+    @Operation(summary = "Get Tenant Transactions", description = "Retrieve a paginated list of transactions for a specific tenant within a date range.")
     @GetMapping("/{tenantId}/transactions")
     public ResponseEntity<TransactionSummaryResponse> getTenantTransactions(
-            @PathVariable String tenantId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @Parameter(description = "Tenant ID") @PathVariable String tenantId,
+            @Parameter(description = "Start date (ISO 8601)") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @Parameter(description = "End date (ISO 8601)") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
 
         Page<TransactionRecord> pageRecords = transactionService.findByTenantIdAndTimestampBetween(
                 tenantId, startDate, endDate, PageRequest.of(page, size, Sort.by("timestamp").descending()));
@@ -94,10 +101,11 @@ public class TenantController {
      * header value.
      * GET /api/tenants/{tenantId}/transactions/{transactionId}
      */
+    @Operation(summary = "Get Transaction", description = "Retrieve a single transaction record for a tenant by its transactionId.")
     @GetMapping("/{tenantId}/transactions/{transactionId}")
     public ResponseEntity<TransactionDTO> getTransaction(
-            @PathVariable String tenantId,
-            @PathVariable String transactionId) {
+            @Parameter(description = "Tenant ID") @PathVariable String tenantId,
+            @Parameter(description = "Transaction ID") @PathVariable String transactionId) {
 
         return transactionService.findByTenantIdAndTransactionId(tenantId, transactionId)
                 .map(r -> TransactionDTO.builder()
@@ -114,6 +122,7 @@ public class TenantController {
     /**
      * Onboard a new tenant with optional rate limit configuration.
      */
+    @Operation(summary = "Onboard Tenant", description = "Onboard a new tenant with optional rate limit configuration.")
     @PostMapping("/onboard")
     public ResponseEntity<TenantResponse> onboardTenant(@Valid @RequestBody TenantOnboardRequest request) {
         log.info("Received request to onboard tenant: {}", request.getTenantId());
@@ -121,15 +130,18 @@ public class TenantController {
         return ResponseEntity.ok(TenantResponse.from(tenant));
     }
 
+    @Operation(summary = "Update Tenant", description = "Update an existing tenant's details.")
     @PutMapping("/{tenantId}")
-    public ResponseEntity<TenantResponse> updateTenant(@PathVariable String tenantId,
+    public ResponseEntity<TenantResponse> updateTenant(
+            @Parameter(description = "Tenant ID") @PathVariable String tenantId,
             @Valid @RequestBody TenantUpdateRequest request) {
         Tenant tenant = tenantService.updateTenant(tenantId, request.getPassword(), request.getName());
         return ResponseEntity.ok(TenantResponse.from(tenant));
     }
 
+    @Operation(summary = "Delete Tenant", description = "Remove a tenant from the system.")
     @DeleteMapping("/{tenantId}")
-    public ResponseEntity<String> deleteTenant(@PathVariable String tenantId) {
+    public ResponseEntity<String> deleteTenant(@Parameter(description = "Tenant ID") @PathVariable String tenantId) {
         tenantService.deleteTenant(tenantId);
         return ResponseEntity.ok("Tenant deleted successfully");
     }

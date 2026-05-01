@@ -7,6 +7,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import java.lang.management.ManagementFactory;
 import java.util.LinkedHashMap;
@@ -30,6 +33,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/health")
+@Tag(name = "Health", description = "System health check and dependency status")
 public class HealthController {
 
     private final CacheManager cacheManager;
@@ -58,6 +62,11 @@ public class HealthController {
      * @return JSON map with application name, version, uptime, cache names, and
      *         dependency statuses
      */
+    @Operation(summary = "System Health Check", description = "Checks the health of the application and its dependencies (MongoDB, Redis, RabbitMQ).",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "System is fully healthy"),
+                   @ApiResponse(responseCode = "503", description = "One or more dependencies are down")
+               })
     @GetMapping
     public ResponseEntity<Map<String, Object>> health() {
         long uptimeMs = ManagementFactory.getRuntimeMXBean().getUptime();
@@ -85,7 +94,12 @@ public class HealthController {
 
         // Redis
         try {
-            redisTemplate.getConnectionFactory().getConnection().ping();
+            var connFactory = redisTemplate.getConnectionFactory();
+            if (connFactory != null) {
+                try (var conn = connFactory.getConnection()) {
+                    conn.ping();
+                }
+            }
             dependencies.put("redis", "UP");
         } catch (Exception e) {
             dependencies.put("redis", "DOWN: " + e.getMessage());

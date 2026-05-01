@@ -7,9 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import ca.uhn.fhir.parser.DataFormatException;
+import ca.uhn.hl7v2.HL7Exception;
 
 import java.time.LocalDateTime;
 
@@ -36,9 +38,9 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "Input Error", e.getMessage(), request);
     }
 
-    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationErrors(
-            org.springframework.web.bind.MethodArgumentNotValidException e, HttpServletRequest request) {
+            MethodArgumentNotValidException e, HttpServletRequest request) {
         String details = e.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .reduce((a, b) -> a + "; " + b)
@@ -47,8 +49,8 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "Validation Error", details, request);
     }
 
-    @ExceptionHandler(ca.uhn.hl7v2.HL7Exception.class)
-    public ResponseEntity<ErrorResponse> handleHl7Error(ca.uhn.hl7v2.HL7Exception e, HttpServletRequest request) {
+    @ExceptionHandler(HL7Exception.class)
+    public ResponseEntity<ErrorResponse> handleHl7Error(HL7Exception e, HttpServletRequest request) {
         log.error("HL7 Processing Error: {}", e.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, "HL7 Processing Error", e.getMessage(), request);
     }
@@ -66,9 +68,9 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, "Tenant Already Exists", e.getMessage(), request);
     }
 
-    @ExceptionHandler(com.al.hl7fhirtransformer.exception.RateLimitExceededException.class)
+    @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<ErrorResponse> handleRateLimitExceeded(
-            com.al.hl7fhirtransformer.exception.RateLimitExceededException e, HttpServletRequest request) {
+            RateLimitExceededException e, HttpServletRequest request) {
         log.warn("Rate limit exceeded: {}", e.getMessage());
         ErrorResponse response = new ErrorResponse(
                 LocalDateTime.now(),

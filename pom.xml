@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.2</version>
+		<version>3.5.14</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.al.hl7fhirtransformer</groupId>
@@ -16,7 +16,7 @@
 	<licenses>
 		<license>
 			<name>Proprietary License</name>
-			<url>blob:https://HL7FHIRTransformer/LICENSE</url>
+			<url>https://github.com/Alak-Das/FHIRTransformer/blob/main/LICENSE</url>
 			<comments>Commercial license. Unauthorized use prohibited.</comments>
 		</license>
 	</licenses>
@@ -24,6 +24,7 @@
 		<java.version>21</java.version>
 		<hapi.fhir.version>7.6.1</hapi.fhir.version>
 		<hapi.v2.version>2.5.1</hapi.v2.version>
+		<testcontainers.version>1.19.7</testcontainers.version>
 	</properties>
 	<dependencies>
 		<!-- Spring Boot Starters -->
@@ -50,6 +51,23 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- Retry and AOP -->
+		<dependency>
+			<groupId>org.springframework.retry</groupId>
+			<artifactId>spring-retry</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
+
+		<!-- Structured Logging -->
+		<dependency>
+			<groupId>net.logstash.logback</groupId>
+			<artifactId>logstash-logback-encoder</artifactId>
+			<version>7.4</version>
 		</dependency>
 
 		<!-- Jackson (Explicit 2.16.1 required by HAPI FHIR 7.6.1) -->
@@ -163,6 +181,31 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Testcontainers -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>${testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mongodb</artifactId>
+			<version>${testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>rabbitmq</artifactId>
+			<version>${testcontainers.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

@@ -22,7 +22,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import java.security.Principal;
 import java.util.HashMap;
@@ -34,10 +38,9 @@ import com.al.hl7fhirtransformer.dto.BatchHl7Request;
 import com.al.hl7fhirtransformer.service.BatchConversionService;
 import com.al.hl7fhirtransformer.service.AckMessageService;
 
-// Swagger imports removed due to compatibility issues
-
 @RestController
 @RequestMapping("/api/convert")
+@Tag(name = "Conversion", description = "Endpoints for HL7 to FHIR and FHIR to HL7 transformations")
 public class ConverterController {
 
     private static final Logger log = LoggerFactory.getLogger(ConverterController.class);
@@ -81,7 +84,8 @@ public class ConverterController {
         this.ackMessageService = ackMessageService;
     }
 
-    @PostMapping(value = "/v2-to-fhir", consumes = MediaType.TEXT_PLAIN_VALUE)
+    @Operation(summary = "Convert HL7 to FHIR (Async)", description = "Submit an HL7 message for asynchronous conversion to FHIR. Returns a 202 Accepted with a transformerId header.")
+    @PostMapping(value = "/v2-to-fhir", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> convertToFhir(@RequestBody String hl7Message, Principal principal,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         // Idempotency check — return existing transaction info on duplicate
@@ -118,32 +122,45 @@ public class ConverterController {
                 .body(response);
     }
 
+    @Operation(summary = "Convert HL7 to FHIR (Sync)", description = "Submit an HL7 message for synchronous conversion to FHIR. Returns the FHIR JSON directly.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully converted"),
+                   @ApiResponse(responseCode = "400", description = "Invalid HL7 message")
+               })
     @PostMapping(value = "/v2-to-fhir-sync", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> convertToFhirSync(@RequestBody String hl7Message, Principal principal) {
+    public ResponseEntity<String> convertToFhirSync(
+            @Parameter(description = "The raw HL7 v2 message") @RequestBody String hl7Message,
+            Principal principal) {
         String tenantId = principal != null ? principal.getName() : "default";
-        EnrichedMessage enriched = messageEnrichmentService.ensureHl7TransactionId(hl7Message);
-        String transactionId = enriched.getTransactionId();
-        String messageWithId = enriched.getContent();
-
         try {
-            String fhirJson = hl7ToFhirService.convertHl7ToFhir(messageWithId);
-            auditService.logTransaction(tenantId, transactionId, MessageType.V2_TO_FHIR_SYNC,
-                    TransactionStatus.COMPLETED);
-            return ResponseEntity.ok()
-                    .header("transformerId", transactionId)
-                    .body(fhirJson);
-        } catch (IllegalArgumentException | ca.uhn.hl7v2.HL7Exception e) {
-            auditService.logTransaction(tenantId, transactionId, MessageType.V2_TO_FHIR_SYNC, TransactionStatus.FAILED,
-                    e.getMessage());
-            throw new IllegalArgumentException(e.getMessage(), e);
-        } catch (Exception e) {
-            auditService.logTransaction(tenantId, transactionId, MessageType.V2_TO_FHIR_SYNC, TransactionStatus.FAILED,
-                    e.getMessage());
-            throw new RuntimeException(e);
+            com.al.hl7fhirtransformer.config.TenantContext.setTenantId(tenantId);
+            EnrichedMessage enriched = messageEnrichmentService.ensureHl7TransactionId(hl7Message);
+            String transactionId = enriched.getTransactionId();
+            String messageWithId = enriched.getContent();
+
+            try {
+                String fhirJson = hl7ToFhirService.convertHl7ToFhir(messageWithId);
+                auditService.logTransaction(tenantId, transactionId, MessageType.V2_TO_FHIR_SYNC,
+                        TransactionStatus.COMPLETED);
+                return ResponseEntity.ok()
+                        .header("transformerId", transactionId)
+                        .body(fhirJson);
+            } catch (IllegalArgumentException | ca.uhn.hl7v2.HL7Exception e) {
+                auditService.logTransaction(tenantId, transactionId, MessageType.V2_TO_FHIR_SYNC, TransactionStatus.FAILED,
+                        e.getMessage());
+                throw new IllegalArgumentException(e.getMessage(), e);
+            } catch (Exception e) {
+                auditService.logTransaction(tenantId, transactionId, MessageType.V2_TO_FHIR_SYNC, TransactionStatus.FAILED,
+                        e.getMessage());
+                throw new RuntimeException(e);
+            }
+        } finally {
+            com.al.hl7fhirtransformer.config.TenantContext.clear();
         }
     }
 
-    @PostMapping(value = "/fhir-to-v2", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Convert FHIR to HL7 (Async)", description = "Submit a FHIR Bundle for asynchronous conversion to HL7 v2. Returns a 202 Accepted with a transformerId header.")
+    @PostMapping(value = "/fhir-to-v2", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> convertToHl7(@RequestBody String fhirJson, Principal principal,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         // Idempotency check — return existing transaction info on duplicate
@@ -184,36 +201,49 @@ public class ConverterController {
                 .body(response);
     }
 
+    @Operation(summary = "Convert FHIR to HL7 (Sync)", description = "Submit a FHIR Bundle for synchronous conversion to HL7 v2. Returns the HL7 message directly.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "Successfully converted"),
+                   @ApiResponse(responseCode = "400", description = "Invalid FHIR JSON")
+               })
     @PostMapping(value = "/fhir-to-v2-sync", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> convertToHl7Sync(@RequestBody String fhirJson, Principal principal) {
+    public ResponseEntity<String> convertToHl7Sync(
+            @Parameter(description = "The FHIR Bundle JSON") @RequestBody String fhirJson,
+            Principal principal) {
         String tenantId = principal != null ? principal.getName() : "default";
-        EnrichedMessage enriched;
         try {
-            enriched = messageEnrichmentService.ensureFhirTransactionId(fhirJson);
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Invalid FHIR JSON", e);
-        }
-        String transactionId = enriched.getTransactionId();
-        String contentWithId = enriched.getContent();
+            com.al.hl7fhirtransformer.config.TenantContext.setTenantId(tenantId);
+            EnrichedMessage enriched;
+            try {
+                enriched = messageEnrichmentService.ensureFhirTransactionId(fhirJson);
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("Invalid FHIR JSON", e);
+            }
+            String transactionId = enriched.getTransactionId();
+            String contentWithId = enriched.getContent();
 
-        try {
-            String hl7Message = fhirToHl7Service.convertFhirToHl7(contentWithId);
-            auditService.logTransaction(tenantId, transactionId, MessageType.FHIR_TO_V2_SYNC,
-                    TransactionStatus.COMPLETED);
-            return ResponseEntity.ok()
-                    .header("transformerId", transactionId)
-                    .body(hl7Message);
-        } catch (IllegalArgumentException e) {
-            auditService.logTransaction(tenantId, transactionId, MessageType.FHIR_TO_V2_SYNC, TransactionStatus.FAILED,
-                    e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            auditService.logTransaction(tenantId, transactionId, MessageType.FHIR_TO_V2_SYNC, TransactionStatus.FAILED,
-                    e.getMessage());
-            throw new RuntimeException(e);
+            try {
+                String hl7Message = fhirToHl7Service.convertFhirToHl7(contentWithId);
+                auditService.logTransaction(tenantId, transactionId, MessageType.FHIR_TO_V2_SYNC,
+                        TransactionStatus.COMPLETED);
+                return ResponseEntity.ok()
+                        .header("transformerId", transactionId)
+                        .body(hl7Message);
+            } catch (IllegalArgumentException e) {
+                auditService.logTransaction(tenantId, transactionId, MessageType.FHIR_TO_V2_SYNC, TransactionStatus.FAILED,
+                        e.getMessage());
+                throw e;
+            } catch (Exception e) {
+                auditService.logTransaction(tenantId, transactionId, MessageType.FHIR_TO_V2_SYNC, TransactionStatus.FAILED,
+                        e.getMessage());
+                throw new RuntimeException(e);
+            }
+        } finally {
+            com.al.hl7fhirtransformer.config.TenantContext.clear();
         }
     }
 
+    @Operation(summary = "Batch Convert HL7 to FHIR (Sync)", description = "Submit a batch of HL7 messages for synchronous conversion. Waits for all to complete.")
     @PostMapping(value = "/v2-to-fhir-batch", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BatchConversionResponse> processHl7Batch(@RequestBody BatchHl7Request request,
             Principal principal) {
@@ -225,6 +255,7 @@ public class ConverterController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Batch Convert FHIR to HL7 (Sync)", description = "Submit a batch of FHIR bundles for synchronous conversion.")
     @PostMapping(value = "/fhir-to-v2-batch", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BatchConversionResponse> processFhirBatch(@RequestBody List<String> request,
             Principal principal) {
@@ -236,6 +267,7 @@ public class ConverterController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Batch Convert HL7 to FHIR (Async)", description = "Submit a batch of HL7 messages for asynchronous conversion.")
     @PostMapping(value = "/batch", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BatchConversionResponse> processBatch(@RequestBody BatchHl7Request request,
             Principal principal) {

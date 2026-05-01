@@ -12,6 +12,7 @@ import java.util.concurrent.Executor;
 
 @Configuration
 @EnableAsync
+@org.springframework.retry.annotation.EnableRetry
 public class AsyncConfig {
 
     @Bean(name = "taskExecutor")

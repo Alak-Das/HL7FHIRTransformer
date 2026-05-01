@@ -120,6 +120,8 @@ debug_*.hl7
 *.p12
 *.jks
 secrets/
+.env
+.env.local
 .env.production
 
 # Coverage reports

@@ -123,113 +123,29 @@ public class Hl7ToFhirService {
                     .triggerEvent(triggerEvent)
                     .build();
 
-            // Organizations
-            try {
-                List<Organization> organizations = converterRegistry.getOrganizationConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, organizations, "Organization");
-            } catch (Exception e) {
-                handleConverterError("Organization", e, errors);
-            }
-
-            // Locations
-            try {
-                List<Location> locations = converterRegistry.getLocationConverter().convert(terser, bundle, context);
-                addToBundle(bundle, locations, "Location");
-            } catch (Exception e) {
-                handleConverterError("Location", e, errors);
-            }
-
-            // Extract Patient Data
-            try {
-                List<Patient> patients = converterRegistry.getPatientConverter().convert(terser, bundle, context);
-                if (!patients.isEmpty()) {
-                    addToBundle(bundle, patients, "Patient");
-                } else {
-                    log.error("Patient conversion failed to return a resource");
-                    errors.add(ConversionError.builder().message("Patient conversion returned no resources")
-                            .severity(ConversionError.Severity.ERROR).build());
+            // Execute Standard Converters
+            Map<String, SegmentConverter<?>> standardConverters = converterRegistry.getStandardConverters();
+            for (Map.Entry<String, SegmentConverter<?>> entry : standardConverters.entrySet()) {
+                String resourceType = entry.getKey();
+                SegmentConverter<?> converter = entry.getValue();
+                
+                try {
+                    // Type erasure requires an unchecked cast, but we know the contract of SegmentConverter
+                    @SuppressWarnings("unchecked")
+                    List<Resource> resources = (List<Resource>) converter.convert(terser, bundle, context);
+                    
+                    if (resources != null && !resources.isEmpty()) {
+                        if ("Patient".equals(resourceType) && resources.isEmpty()) {
+                            log.error("Patient conversion failed to return a resource");
+                            errors.add(ConversionError.builder().message("Patient conversion returned no resources")
+                                    .severity(ConversionError.Severity.ERROR).build());
+                        } else {
+                            addToBundle(bundle, resources, resourceType);
+                        }
+                    }
+                } catch (Exception e) {
+                    handleConverterError(resourceType, e, errors);
                 }
-            } catch (Exception e) {
-                handleConverterError("Patient", e, errors);
-            }
-
-            // Encounters
-            try {
-                List<Encounter> encounters = converterRegistry.getEncounterConverter().convert(terser, bundle, context);
-                addToBundle(bundle, encounters, "Encounter");
-            } catch (Exception e) {
-                handleConverterError("Encounter", e, errors);
-            }
-
-            // Observations
-            try {
-                List<Observation> observations = converterRegistry.getObservationConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, observations, "Observation");
-            } catch (Exception e) {
-                handleConverterError("Observation", e, errors);
-            }
-
-            // Conditions
-            try {
-                List<Condition> conditions = converterRegistry.getConditionConverter().convert(terser, bundle, context);
-                addToBundle(bundle, conditions, "Condition");
-            } catch (Exception e) {
-                handleConverterError("Condition", e, errors);
-            }
-
-            // Allergies
-            try {
-                List<AllergyIntolerance> allergies = converterRegistry.getAllergyConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, allergies, "AllergyIntolerance");
-            } catch (Exception e) {
-                handleConverterError("AllergyIntolerance", e, errors);
-            }
-
-            // Medications
-            try {
-                List<MedicationRequest> medications = converterRegistry.getMedicationConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, medications, "MedicationRequest");
-            } catch (Exception e) {
-                handleConverterError("MedicationRequest", e, errors);
-            }
-
-            // MedicationAdministration
-            try {
-                List<MedicationAdministration> adminList = converterRegistry.getMedicationAdministrationConverter()
-                        .convert(terser, bundle,
-                                context);
-                addToBundle(bundle, adminList, "MedicationAdministration");
-            } catch (Exception e) {
-                handleConverterError("MedicationAdministration", e, errors);
-            }
-
-            // Practitioners
-            try {
-                List<Practitioner> practitioners = converterRegistry.getPractitionerConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, practitioners, "Practitioner");
-            } catch (Exception e) {
-                handleConverterError("Practitioner", e, errors);
-            }
-
-            // Procedures
-            try {
-                List<Procedure> procedures = converterRegistry.getProcedureConverter().convert(terser, bundle, context);
-                addToBundle(bundle, procedures, "Procedure");
-            } catch (Exception e) {
-                handleConverterError("Procedure", e, errors);
-            }
-
-            // Specimen (New)
-            try {
-                List<Specimen> specimens = converterRegistry.getSpecimenConverter().convert(terser, bundle, context);
-                addToBundle(bundle, specimens, "Specimen");
-            } catch (Exception e) {
-                handleConverterError("Specimen", e, errors);
             }
 
             // ServiceRequests / Orders
@@ -256,50 +172,6 @@ public class Hl7ToFhirService {
                 }
             }
 
-            // DiagnosticReports
-            try {
-                List<DiagnosticReport> reports = converterRegistry.getDiagnosticReportConverter().convert(terser,
-                        bundle, context);
-                addToBundle(bundle, reports, "DiagnosticReport");
-            } catch (Exception e) {
-                handleConverterError("DiagnosticReport", e, errors);
-            }
-
-            // Immunizations
-            try {
-                List<Immunization> immunizations = converterRegistry.getImmunizationConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, immunizations, "Immunization");
-            } catch (Exception e) {
-                handleConverterError("Immunization", e, errors);
-            }
-
-            // Appointments
-            try {
-                List<Appointment> appointments = converterRegistry.getAppointmentConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, appointments, "Appointment");
-            } catch (Exception e) {
-                handleConverterError("Appointment", e, errors);
-            }
-
-            // Communication (New)
-            try {
-                List<Communication> comms = converterRegistry.getCommunicationConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, comms, "Communication");
-            } catch (Exception e) {
-                handleConverterError("Communication", e, errors);
-            }
-
-            // Device (New)
-            try {
-                List<Device> devices = converterRegistry.getDeviceConverter().convert(terser, bundle, context);
-                addToBundle(bundle, devices, "Device");
-            } catch (Exception e) {
-                handleConverterError("Device", e, errors);
-            }
-
             // DocumentReference (New) - for MDM or others
             if ("MDM".equals(msgType) || "T02".equals(triggerEvent)) {
                 try {
@@ -309,32 +181,6 @@ public class Hl7ToFhirService {
                 } catch (Exception e) {
                     handleConverterError("DocumentReference", e, errors);
                 }
-            }
-
-            // MessageHeader (New)
-            try {
-                List<MessageHeader> headers = converterRegistry.getMessageHeaderConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, headers, "MessageHeader");
-            } catch (Exception e) {
-                handleConverterError("MessageHeader", e, errors);
-            }
-
-            // CarePlan (New) - from ORC usually
-            try {
-                List<CarePlan> carePlans = converterRegistry.getCarePlanConverter().convert(terser, bundle, context);
-                addToBundle(bundle, carePlans, "CarePlan");
-            } catch (Exception e) {
-                handleConverterError("CarePlan", e, errors);
-            }
-
-            // PractitionerRole (New) - from ROL
-            try {
-                List<PractitionerRole> roles = converterRegistry.getPractitionerRoleConverter().convert(terser, bundle,
-                        context);
-                addToBundle(bundle, roles, "PractitionerRole");
-            } catch (Exception e) {
-                handleConverterError("PractitionerRole", e, errors);
             }
 
             // Insurance / RelatedPerson / Organizations (IN1/GT1)

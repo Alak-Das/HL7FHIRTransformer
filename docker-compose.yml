@@ -3,19 +3,23 @@ services:
     build: .
     ports:
       - "9091:8080"
-
     restart: unless-stopped
     container_name: hl7-fhir-transformer
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      MONGODB_URI: mongodb://admin:supersecret@host.docker.internal:27017/admin?authSource=admin
-      SPRING_RABBITMQ_HOST: host.docker.internal
-      SPRING_DATA_REDIS_HOST: host.docker.internal
-      REDIS_PASSWORD: supersecret
+      MONGODB_URI: mongodb://admin:${MONGO_PASSWORD:-supersecret}@mongodb:27017/admin?authSource=admin
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATA_REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-supersecret}
       RABBITMQ_USERNAME: admin
-      RABBITMQ_PASSWORD: supersecret
-      ADMIN_PASSWORD: changeme-admin
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-supersecret}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme-admin}
     deploy:
       resources:
         limits:
@@ -29,3 +33,61 @@ services:
       retries: 3
       start_period: 40s
 
+  # --- Infrastructure Services ---
+
+  mongodb:
+    image: mongo:7
+    container_name: hl7-fhir-mongodb
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-supersecret}
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: hl7-fhir-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-supersecret}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: hl7-fhir-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-supersecret} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-supersecret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo-data:
+  rabbitmq-data:
+  redis-data:

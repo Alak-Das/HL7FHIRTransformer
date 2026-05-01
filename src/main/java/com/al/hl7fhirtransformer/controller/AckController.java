@@ -9,6 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 import java.security.Principal;
 import java.util.Optional;
@@ -35,6 +39,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/ack")
+@Tag(name = "ACK", description = "HL7 v2 ACK retrieval for asynchronous conversions")
 public class AckController {
 
     private static final Logger log = LoggerFactory.getLogger(AckController.class);
@@ -58,9 +63,14 @@ public class AckController {
      * @return HL7 pipe-delimited ACK string with Content-Type: text/plain, or 404
      *         if not found
      */
+    @Operation(summary = "Get HL7 ACK", description = "Retrieve an HL7 v2 ACK for a previously submitted async conversion.",
+               responses = {
+                   @ApiResponse(responseCode = "200", description = "ACK successfully retrieved"),
+                   @ApiResponse(responseCode = "404", description = "Transaction not found")
+               })
     @GetMapping(value = "/{transactionId}", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> getAck(
-            @PathVariable String transactionId,
+            @Parameter(description = "The transformerId returned as a response header from async conversion") @PathVariable String transactionId,
             Principal principal) {
 
         String tenantId = principal != null ? principal.getName() : "default";
