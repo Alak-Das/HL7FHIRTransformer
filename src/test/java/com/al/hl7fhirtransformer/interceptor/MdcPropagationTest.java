@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Import(MdcPropagationTest.TestConfig.class)
-public class MdcPropagationTest {
+public class MdcPropagationTest extends com.al.hl7fhirtransformer.listener.BaseIntegrationTest {
 
     @Autowired
     private WebApplicationContext wac;

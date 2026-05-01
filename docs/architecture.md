@@ -66,6 +66,8 @@ HL7FHIRTransformer follows a **Layered Microservice Architecture** with **Event-
 - **Virtual Threads**: Java 21 `VirtualThreadPerTaskExecutor` for non-blocking I/O.
 - **Singleton Validation**: Reusable `ValidationSupportChain` to minimize heap churn.
 - **Parallel Streams**: Concurrent processing for batch and subscription notifications.
+- **Distributed Tracing**: Propagation of trace context across sync and async boundaries using Brave.
+- **Circuit Breaker**: Resilience4j protection for outbound webhooks to prevent cascading failures.
 
 ```
 
@@ -470,6 +472,7 @@ public Optional<Tenant> findByTenantId(String tenantId) {
 ### Messaging & Integration
 - **RabbitMQ**: 3.x (Alpine image with management plugin)
 - **Spring AMQP**: Integrated via `spring-boot-starter-amqp`
+- **Resilience4j**: Circuit Breaker pattern for webhook deliveries
 
 ### Data Persistence
 - **MongoDB**: Latest (document storage for tenants, audit logs)
@@ -488,8 +491,10 @@ public Optional<Tenant> findByTenantId(String tenantId) {
 ### Observability
 - **Spring Actuator**: Health checks, metrics
 - **Micrometer**: Metrics collection
+- **Micrometer Tracing**: Brave bridge for distributed tracing
+- **Zipkin**: Trace collection and visualization
 - **Prometheus**: Metrics export (compatible)
-- **SLF4J + Logback**: Logging
+- **SLF4J + Logback**: Structured JSON logging via `logstash-logback-encoder`
 
 ### Testing
 - **JUnit 5**: Unit testing framework

@@ -44,6 +44,9 @@ HL7FHIRTransformer is an enterprise-grade, high-performance bidirectional messag
 - **Automatic Retry Logic**: 3-tier exponential backoff (5s → 15s → 45s) for transient failures
 - **Per-Tenant Rate Limiting**: Configurable requests-per-minute limits with Redis-based tracking
 - **Dead Letter Queue**: Automatic DLQ handling for failed messages after retries
+- **Distributed Tracing**: End-to-end request tracking via **Micrometer Tracing** and **Zipkin**
+- **Resilient Webhooks**: Circuit breaker protection (Resilience4j) for outbound notifications
+- **Structured Logging**: JSON-formatted logs for ELK/EFK integration
 - **Metrics & Monitoring**: Prometheus-compatible metrics via Spring Actuator
 
 ### Technical Stack
@@ -51,6 +54,8 @@ HL7FHIRTransformer is an enterprise-grade, high-performance bidirectional messag
 - **Message Broker**: RabbitMQ 3.x with management console
 - **Database**: MongoDB (document storage)
 - **Cache**: Redis 7.x (distributed caching)
+- **Observability**: Micrometer Tracing, Brave/Zipkin, Prometheus
+- **Resilience**: Resilience4j (Circuit Breaker, Retry)
 - **HL7/FHIR Libraries**: HAPI FHIR 7.6.1, HAPI HL7 v2 2.5.1
 - **Deployment**: Docker Compose, Multi-stage Dockerfile
 - **Documentation**: Swagger UI / OpenAPI 3.0

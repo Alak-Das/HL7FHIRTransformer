@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-public class Hl7ToFhirServiceTest {
+public class Hl7ToFhirServiceTest extends com.al.hl7fhirtransformer.listener.BaseIntegrationTest {
 
     @Autowired
     private Hl7ToFhirService hl7ToFhirService;
@@ -47,6 +47,23 @@ public class Hl7ToFhirServiceTest {
         assertTrue(fhir.contains("VIP-Gold"), "Should contain VIP Level from ZPI-3");
         assertTrue(fhir.contains("http://example.org/fhir/StructureDefinition/pet-name"),
                 "Should contain extension URL");
+    }
+
+    @Test
+    public void testGenericZSegmentConversion() throws Exception {
+        // HL7 with a completely unknown Z-segment (ZXY)
+        String hl7 = "MSH|^~\\&|HIS|RIH|EKG|EkG|199904140038||ADT^A01|1003|P|2.5\r" +
+                "PID|1||100||DOE^JACK||19700101|M\r" +
+                "PV1|1|I\r" +
+                "ZXY|1|Value1|Value2"; 
+
+        String fhir = hl7ToFhirService.convertHl7ToFhir(hl7);
+
+        System.out.println("Generic Z-Segment Test Result: " + fhir);
+        assertNotNull(fhir);
+        assertTrue(fhir.contains("Basic"), "Should create a Basic resource for unknown Z-segment");
+        assertTrue(fhir.contains("ZXY/field/1"), "Should contain generated extension URL for field 1");
+        assertTrue(fhir.contains("ZXY/field/2"), "Should contain generated extension URL for field 2");
     }
 
     @Test

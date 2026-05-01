@@ -58,7 +58,8 @@ public class ClinicalMappingsGapTest {
                 new DocumentReferenceConverter(),
                 new CarePlanConverter(),
                 new PractitionerRoleConverter(),
-                new MessageHeaderConverter());
+                new MessageHeaderConverter(),
+                new ZSegmentConverter());
 
         hl7ToFhirService = new Hl7ToFhirService(fhirValidationService, fhirContext, hapiContext, meterRegistry,
                 registry,

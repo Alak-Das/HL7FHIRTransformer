@@ -33,6 +33,7 @@ public class Hl7ConverterRegistry {
     private final CarePlanConverter carePlanConverter;
     private final PractitionerRoleConverter practitionerRoleConverter;
     private final MessageHeaderConverter messageHeaderConverter;
+    private final ZSegmentConverter zSegmentConverter;
 
     @Autowired
     public Hl7ConverterRegistry(
@@ -59,7 +60,8 @@ public class Hl7ConverterRegistry {
             DocumentReferenceConverter documentReferenceConverter,
             CarePlanConverter carePlanConverter,
             PractitionerRoleConverter practitionerRoleConverter,
-            MessageHeaderConverter messageHeaderConverter) {
+            MessageHeaderConverter messageHeaderConverter,
+            ZSegmentConverter zSegmentConverter) {
         this.patientConverter = patientConverter;
         this.encounterConverter = encounterConverter;
         this.observationConverter = observationConverter;
@@ -84,6 +86,7 @@ public class Hl7ConverterRegistry {
         this.carePlanConverter = carePlanConverter;
         this.practitionerRoleConverter = practitionerRoleConverter;
         this.messageHeaderConverter = messageHeaderConverter;
+        this.zSegmentConverter = zSegmentConverter;
     }
 
     public PatientConverter getPatientConverter() {
@@ -209,6 +212,7 @@ public class Hl7ConverterRegistry {
         converters.put("MessageHeader", messageHeaderConverter);
         converters.put("CarePlan", carePlanConverter);
         converters.put("PractitionerRole", practitionerRoleConverter);
+        converters.put("Basic", zSegmentConverter); // Add Z-Segment Converter at the end
         return converters;
     }
 }

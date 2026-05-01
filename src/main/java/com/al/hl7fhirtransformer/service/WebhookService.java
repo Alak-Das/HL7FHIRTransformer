@@ -44,6 +44,7 @@ public class WebhookService {
      * @param details       Additional details (error message, result summary, etc.)
      */
     @Async
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "webhook", fallbackMethod = "webhookFallback")
     @Retryable(
             retryFor = { Exception.class },
             maxAttemptsExpression = "${app.webhook.max-retries:3}",
@@ -134,5 +135,16 @@ public class WebhookService {
         details.put("result", "partial");
 
         sendNotification(webhookUrl, transactionId, "PARTIAL", messageType, details);
+    }
+
+    /**
+     * Fallback method called when the circuit breaker is open.
+     */
+    public void webhookFallback(String webhookUrl, String transactionId, String status,
+            String messageType, Map<String, Object> details, Throwable t) {
+        log.error("Circuit breaker is OPEN. Dropping webhook notification to {} for transaction {}. Reason: {}", 
+                webhookUrl, transactionId, t.getMessage());
+        // In a real production system, we might route this directly to a Dead Letter Queue 
+        // to save memory, rather than trying to process it.
     }
 }

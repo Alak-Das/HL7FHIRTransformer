@@ -583,10 +583,12 @@ tenantId: hospital_a
 { "message": "Subscription cancelled successfully", "id": "sub-abc123" }
 ```
 
-**Criteria Format**: Supports `ResourceType` alone or with parameters:
-- `Patient` — matches any Patient resource
-- `Patient?gender=male` — matches only male patients
-- `Observation?status=final&category=vital-signs` — multiple parameters (AND logic)
+**Criteria Format**: Supports `ResourceType` alone, with parameters, or advanced **FHIRPath** expressions:
+ - `Patient` — matches any Patient resource
+ - `Patient?gender=male` — matches only male patients
+ - `Observation?status=final&category=vital-signs` — multiple parameters (AND logic)
+ - `FHIRPath:Patient.gender = 'male'` — advanced matching using FHIRPath syntax
+ - `FHIRPath:Observation.value.quantity.value > 100` — numeric comparisons via FHIRPath
 
 ---
 

@@ -14,13 +14,10 @@ import org.testcontainers.utility.DockerImageName;
 @ActiveProfiles("test")
 public abstract class BaseIntegrationTest {
 
-    @ServiceConnection
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7");
 
-    @ServiceConnection
     static RabbitMQContainer rabbitMQContainer = new RabbitMQContainer("rabbitmq:3-management-alpine");
 
-    @ServiceConnection(name = "redis")
     static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(6379);
 
@@ -28,5 +25,14 @@ public abstract class BaseIntegrationTest {
         mongoDBContainer.start();
         rabbitMQContainer.start();
         redisContainer.start();
+        
+        // Force system properties to override application.properties defaults
+        System.setProperty("spring.data.mongodb.uri", mongoDBContainer.getReplicaSetUrl());
+        System.setProperty("spring.rabbitmq.host", rabbitMQContainer.getHost());
+        System.setProperty("spring.rabbitmq.port", String.valueOf(rabbitMQContainer.getAmqpPort()));
+        System.setProperty("spring.rabbitmq.username", "guest");
+        System.setProperty("spring.rabbitmq.password", "guest");
+        System.setProperty("spring.data.redis.host", redisContainer.getHost());
+        System.setProperty("spring.data.redis.port", String.valueOf(redisContainer.getMappedPort(6379)));
     }
 }

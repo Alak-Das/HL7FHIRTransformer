@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.hl7.fhir.r4.model.BooleanType;
 
 @Service
 @RequiredArgsConstructor
@@ -125,16 +126,40 @@ public class SubscriptionService {
      * Match a subscription criteria string against the list of resources in the
      * bundle.
      * Supports:
+     * - FHIRPath expression: e.g. "FHIRPath:Patient.gender = 'male'"
      * - ResourceType only, e.g. "Patient"
      * - ResourceType with simple key=value params, e.g. "Patient?gender=male"
-     * - Multiple params joined by &, e.g.
-     * "Observation?status=final&category=vital-signs"
      *
      * Parameter values are checked against the resource's JSON representation.
      */
     private boolean matchesCriteria(String criteria, List<Resource> resources) {
         if (criteria == null || criteria.isEmpty())
             return false;
+
+        // --- FHIRPath Evaluation ---
+        if (criteria.startsWith("FHIRPath:")) {
+            String fhirPathExpression = criteria.substring("FHIRPath:".length()).trim();
+            for (Resource resource : resources) {
+                try {
+                    List<org.hl7.fhir.r4.model.Base> result = fhirContext.newFhirPath().evaluate(resource, fhirPathExpression, org.hl7.fhir.r4.model.Base.class);
+                    if (result != null && !result.isEmpty()) {
+                        // If the result is a boolean true, it matches
+                        if (result.get(0) instanceof BooleanType) {
+                            if (((BooleanType) result.get(0)).booleanValue()) {
+                                return true;
+                            }
+                        } else {
+                            // If it evaluates to any non-boolean nodes (e.g. Patient.name), it's a match
+                            return true;
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("FHIRPath evaluation failed for subscription: {}", e.getMessage());
+                }
+            }
+            return false;
+        }
+        // --- End FHIRPath Evaluation ---
 
         String[] parts = criteria.split("\\?", 2);
         String resourceType = parts[0].trim();

@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-public class FhirToHl7ServiceTest {
+public class FhirToHl7ServiceTest extends com.al.hl7fhirtransformer.listener.BaseIntegrationTest {
 
     @Autowired
     private FhirToHl7Service fhirToHl7Service;

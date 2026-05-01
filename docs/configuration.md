@@ -218,6 +218,17 @@ http
         .anyRequest().authenticated()
     )
     .httpBasic(withDefaults());
+ ```
+ 
+ ### CORS Configuration
+ 
+ Cross-Origin Resource Sharing (CORS) is configured via application properties:
+ 
+ ```properties
+ # Allowed origins (comma-separated)
+ app.cors.allowed-origins=${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+ ```
+
 ```
 
 **RBAC Rules**:
@@ -323,6 +334,45 @@ app.webhook.max-retries=3
 
 # Base delay in milliseconds for exponential backoff (e.g., 1s -> 2s -> 4s)
 app.webhook.retry-delay-ms=1000
+ ```
+ 
+ ---
+ 
+ ## Tracing & Observability
+ 
+ ### Distributed Tracing (Micrometer + Zipkin)
+ ```properties
+ # Sampling probability (1.0 = 100%, 0.1 = 10%)
+ management.tracing.sampling.probability=1.0
+ 
+ # Zipkin endpoint
+ management.zipkin.tracing.endpoint=http://localhost:9411/api/v2/spans
+ ```
+ 
+ ---
+ 
+ ## Resilience Configuration
+ 
+ ### Resilience4j Circuit Breaker
+ Configured for the `webhook` service to prevent cascading failures when external endpoints are down.
+ 
+ ```properties
+ # Sliding window size for failure calculation
+ resilience4j.circuitbreaker.instances.webhook.sliding-window-size=10
+ 
+ # Failure rate threshold (percentage)
+ resilience4j.circuitbreaker.instances.webhook.failure-rate-threshold=50
+ 
+ # Time to wait in OPEN state before transitioning to HALF_OPEN
+ resilience4j.circuitbreaker.instances.webhook.wait-duration-in-open-state=30s
+ 
+ # Max calls in HALF_OPEN state
+ resilience4j.circuitbreaker.instances.webhook.permitted-number-of-calls-in-half-open-state=3
+ 
+ # Automatically transition from OPEN to HALF_OPEN
+ resilience4j.circuitbreaker.instances.webhook.automatic-transition-from-open-to-half-open-enabled=true
+ ```
+
 ```
 
 ---
