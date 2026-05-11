@@ -38,8 +38,6 @@ public class ClinicalMappingsGapTest {
 
         MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
-        ParsingConfiguration parsingConfiguration = new ParsingConfiguration();
-        SubscriptionService subscriptionService = Mockito.mock(SubscriptionService.class);
 
         Hl7ConverterRegistry registry = new Hl7ConverterRegistry(
                 new PatientConverter(new com.al.hl7fhirtransformer.config.MappingConfiguration()),

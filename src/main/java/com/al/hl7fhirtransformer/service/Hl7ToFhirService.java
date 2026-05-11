@@ -12,10 +12,6 @@ import com.al.hl7fhirtransformer.dto.ConversionError;
 import com.al.hl7fhirtransformer.util.OperationOutcomeBuilder;
 import com.al.hl7fhirtransformer.util.DateTimeUtil;
 
-import org.hl7.fhir.r4.model.MedicationRequest;
-import org.hl7.fhir.r4.model.MedicationAdministration;
-import org.hl7.fhir.r4.model.DiagnosticReport;
-
 import org.hl7.fhir.r4.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

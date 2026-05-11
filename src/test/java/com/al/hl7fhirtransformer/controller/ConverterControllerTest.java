@@ -1,7 +1,7 @@
 package com.al.hl7fhirtransformer.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.al.hl7fhirtransformer.dto.EnrichedMessage;
+
 import com.al.hl7fhirtransformer.model.enums.MessageType;
 import com.al.hl7fhirtransformer.model.enums.TransactionStatus;
 import com.al.hl7fhirtransformer.service.AuditService;
@@ -56,23 +56,14 @@ public class ConverterControllerTest {
         @Mock
         private com.al.hl7fhirtransformer.service.IdempotencyService idempotencyService;
 
-        @Mock
-        private com.al.hl7fhirtransformer.service.AckMessageService ackMessageService;
-
-        private ObjectMapper objectMapper = new ObjectMapper();
 
         @BeforeEach
         public void setup() throws Exception {
                 MockitoAnnotations.openMocks(this);
 
-                // Mock ACK generation
-                when(ackMessageService.generateAckAccept(anyString()))
-                                .thenReturn("MSH|^~\\&|ACK|FACILITY||20240101||ACK|123|P|2.5\rMSA|AA|123");
-
                 ConverterController controller = new ConverterController(
                                 hl7ToFhirService, fhirToHl7Service, batchConversionService, rabbitTemplate,
-                                messageEnrichmentService, auditService, idempotencyService, objectMapper,
-                                ackMessageService);
+                                messageEnrichmentService, auditService, idempotencyService);
 
                 ReflectionTestUtils.setField(controller, "exchange", "test-exchange");
                 ReflectionTestUtils.setField(controller, "routingKey", "test-routing-key");

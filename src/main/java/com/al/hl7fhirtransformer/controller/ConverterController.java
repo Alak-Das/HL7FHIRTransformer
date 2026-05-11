@@ -1,12 +1,11 @@
 package com.al.hl7fhirtransformer.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.al.hl7fhirtransformer.dto.EnrichedMessage;
+
 import com.al.hl7fhirtransformer.model.enums.MessageType;
 import com.al.hl7fhirtransformer.model.enums.TransactionStatus;
 import com.al.hl7fhirtransformer.service.AuditService;
 import com.al.hl7fhirtransformer.service.IdempotencyService;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.RequestHeader;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
@@ -36,7 +35,6 @@ import java.util.Map;
 import com.al.hl7fhirtransformer.dto.BatchConversionResponse;
 import com.al.hl7fhirtransformer.dto.BatchHl7Request;
 import com.al.hl7fhirtransformer.service.BatchConversionService;
-import com.al.hl7fhirtransformer.service.AckMessageService;
 
 @RestController
 @RequestMapping("/api/convert")
@@ -52,8 +50,6 @@ public class ConverterController {
     private final MessageEnrichmentService messageEnrichmentService;
     private final AuditService auditService;
     private final IdempotencyService idempotencyService;
-    private final ObjectMapper objectMapper;
-    private final AckMessageService ackMessageService;
 
     @Value("${app.rabbitmq.exchange}")
     private String exchange;
@@ -71,8 +67,7 @@ public class ConverterController {
     public ConverterController(Hl7ToFhirService hl7ToFhirService, FhirToHl7Service fhirToHl7Service,
             BatchConversionService batchConversionService, RabbitTemplate rabbitTemplate,
             MessageEnrichmentService messageEnrichmentService, AuditService auditService,
-            IdempotencyService idempotencyService, ObjectMapper objectMapper,
-            AckMessageService ackMessageService) {
+            IdempotencyService idempotencyService) {
         this.hl7ToFhirService = hl7ToFhirService;
         this.fhirToHl7Service = fhirToHl7Service;
         this.batchConversionService = batchConversionService;
@@ -80,8 +75,6 @@ public class ConverterController {
         this.messageEnrichmentService = messageEnrichmentService;
         this.auditService = auditService;
         this.idempotencyService = idempotencyService;
-        this.objectMapper = objectMapper;
-        this.ackMessageService = ackMessageService;
     }
 
     @Operation(summary = "Convert HL7 to FHIR (Async)", description = "Submit an HL7 message for asynchronous conversion to FHIR. Returns a 202 Accepted with a transformerId header.")

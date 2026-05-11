@@ -1,9 +1,5 @@
 package com.al.hl7fhirtransformer.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * Represents an error that occurred during HL7 to FHIR conversion.

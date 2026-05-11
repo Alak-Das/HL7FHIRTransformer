@@ -10,12 +10,10 @@ import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 @Component
 public class ProcedureToPr1Converter implements FhirToHl7Converter<Procedure> {
-    private static final Logger log = LoggerFactory.getLogger(ProcedureToPr1Converter.class);
 
     @Override
     public boolean canConvert(Resource resource) {

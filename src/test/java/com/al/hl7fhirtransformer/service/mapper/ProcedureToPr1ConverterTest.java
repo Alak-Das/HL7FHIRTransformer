@@ -35,10 +35,12 @@ public class ProcedureToPr1ConverterTest {
         assertEquals("P1", adt.getPROCEDURE(0).getPR1().getProcedureCode().getIdentifier().getValue());
         assertEquals("P2", adt.getPROCEDURE(1).getPR1().getProcedureCode().getIdentifier().getValue());
 
-        String encoded = new ca.uhn.hl7v2.DefaultHapiContext().getPipeParser().encode(adt);
-        System.out.println("Encoded: " + encoded);
-        if (!encoded.contains("PR1|1||P1") || !encoded.contains("PR1|2||P2")) {
-            throw new RuntimeException("PR1 segment missing from encoded message: " + encoded);
+        try (ca.uhn.hl7v2.DefaultHapiContext context = new ca.uhn.hl7v2.DefaultHapiContext()) {
+            String encoded = context.getPipeParser().encode(adt);
+            System.out.println("Encoded: " + encoded);
+            if (!encoded.contains("PR1|1||P1") || !encoded.contains("PR1|2||P2")) {
+                throw new RuntimeException("PR1 segment missing from encoded message: " + encoded);
+            }
         }
     }
 }
